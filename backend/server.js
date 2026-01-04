@@ -191,15 +191,20 @@ app.get('/stats/daily/:date', async (req, res) => {
         );
 
         // ========== RATING CALCULATION ==========
-        // Only update rating if there are tasks for the day
-        let currentRating = await getCurrentRatingFromDB();
-        let newRating = currentRating;
+        // Get rating from BEFORE today to use as baseline
+        const prevRatingResult = await pool.query(
+            'SELECT rating FROM rating_history WHERE date < $1 ORDER BY date DESC LIMIT 1',
+            [date]
+        );
+
+        let previousRating = prevRatingResult.rows.length > 0 ? prevRatingResult.rows[0].rating : STARTING_RATING;
+        let newRating = previousRating;
         let ratingChange = 0;
 
         if (totalPossiblePoints > 0) {
-            // Calculate rating change based on performance
-            ratingChange = calculateRatingChange(currentRating, percentageScore);
-            newRating = Math.max(MIN_RATING, Math.min(MAX_RATING, currentRating + ratingChange));
+            // Calculate rating change based on performance vs PREVIOUS rating
+            ratingChange = calculateRatingChange(previousRating, percentageScore);
+            newRating = Math.max(MIN_RATING, Math.min(MAX_RATING, previousRating + ratingChange));
 
             // Check if we already have a rating entry for today
             const existingRating = await pool.query(
@@ -230,10 +235,10 @@ app.get('/stats/daily/:date', async (req, res) => {
             tasksCompleted: tasks.filter(t => t.completed).length,
             totalTasks: tasks.length,
             // Rating info
-            previousRating: currentRating,
+            previousRating: previousRating,
             currentRating: newRating,
             ratingChange: ratingChange,
-            expectedScore: Math.round(getExpectedScore(currentRating) * 100) / 100
+            expectedScore: Math.round(getExpectedScore(previousRating) * 100) / 100
         });
     } catch (error) {
         console.error('Error calculating daily score:', error);
