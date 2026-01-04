@@ -7,6 +7,7 @@ import HomeScreen from '../screens/HomeScreen';
 import AddTaskScreen from '../screens/AddTaskScreen';
 import StatsScreen from '../screens/StatsScreen';
 import CookieJarScreen from '../screens/CookieJarScreen';
+import LeaderboardScreen from '../screens/LeaderboardScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -32,6 +33,12 @@ const CookieIcon = ({ focused }) => (
 const StatsIcon = ({ focused }) => (
     <View style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: focused === true ? '#dbeafe' : 'transparent' }}>
         <Text style={{ fontSize: 20, color: focused === true ? '#3b82f6' : '#9ca3af' }}>📊</Text>
+    </View>
+);
+
+const LeaderboardIcon = ({ focused }) => (
+    <View style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: focused === true ? '#fef3c7' : 'transparent' }}>
+        <Text style={{ fontSize: 20, color: focused === true ? '#f59e0b' : '#9ca3af' }}>🏆</Text>
     </View>
 );
 
@@ -83,6 +90,14 @@ export default function AppNavigator() {
                     options={{
                         tabBarIcon: ({ focused }) => <StatsIcon focused={focused} />,
                         tabBarLabel: 'Stats',
+                    }}
+                />
+                <Tab.Screen
+                    name="Leaderboard"
+                    component={LeaderboardScreen}
+                    options={{
+                        tabBarIcon: ({ focused }) => <LeaderboardIcon focused={focused} />,
+                        tabBarLabel: 'Rank',
                     }}
                 />
             </Tab.Navigator>

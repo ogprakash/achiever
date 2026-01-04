@@ -22,10 +22,24 @@ const pool = new Pool(
 const initDatabase = async () => {
   const client = await pool.connect();
   try {
+    // Create users table FIRST (other tables reference it)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        google_id VARCHAR(255) UNIQUE,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        avatar_url TEXT,
+        current_rating INTEGER DEFAULT 1500,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     // Create tasks table
     await client.query(`
       CREATE TABLE IF NOT EXISTS tasks (
         id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         title VARCHAR(255) NOT NULL,
         importance INTEGER CHECK (importance >= 0 AND importance <= 4),
         completed BOOLEAN DEFAULT FALSE,
@@ -38,10 +52,13 @@ const initDatabase = async () => {
       );
     `);
 
-    // Add new columns if they don't exist (for existing databases)
+    // Add user_id column to tasks if it doesn't exist (migration for existing DBs)
     await client.query(`
       DO $$
       BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tasks' AND column_name = 'user_id') THEN
+          ALTER TABLE tasks ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE;
+        END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tasks' AND column_name = 'is_daily') THEN
           ALTER TABLE tasks ADD COLUMN is_daily BOOLEAN DEFAULT FALSE;
         END IF;
@@ -58,14 +75,12 @@ const initDatabase = async () => {
     await client.query(`
       DO $$
       BEGIN
-        -- Drop old constraint if it exists
         IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'tasks_importance_check') THEN
           ALTER TABLE tasks DROP CONSTRAINT tasks_importance_check;
         END IF;
-        -- Add new constraint allowing 0-4
         ALTER TABLE tasks ADD CONSTRAINT tasks_importance_check CHECK (importance >= 0 AND importance <= 4);
       EXCEPTION WHEN duplicate_object THEN
-        NULL; -- Constraint already exists with correct values
+        NULL;
       END $$;
     `);
 
@@ -73,18 +88,31 @@ const initDatabase = async () => {
     await client.query(`
       CREATE TABLE IF NOT EXISTS daily_scores (
         id SERIAL PRIMARY KEY,
-        date DATE UNIQUE NOT NULL,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        date DATE NOT NULL,
         total_possible_points INTEGER DEFAULT 0,
         earned_points INTEGER DEFAULT 0,
         percentage_score NUMERIC(5,2) DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, date)
       );
+    `);
+
+    // Add user_id to daily_scores if missing
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'daily_scores' AND column_name = 'user_id') THEN
+          ALTER TABLE daily_scores ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE;
+        END IF;
+      END $$;
     `);
 
     // Create rating_history table
     await client.query(`
       CREATE TABLE IF NOT EXISTS rating_history (
         id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         date DATE NOT NULL,
         rating INTEGER NOT NULL,
         daily_score NUMERIC(5,2),
@@ -92,10 +120,21 @@ const initDatabase = async () => {
       );
     `);
 
+    // Add user_id to rating_history if missing
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'rating_history' AND column_name = 'user_id') THEN
+          ALTER TABLE rating_history ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE;
+        END IF;
+      END $$;
+    `);
+
     // Create streaks table for Cookie Jar tracking
     await client.query(`
       CREATE TABLE IF NOT EXISTS streaks (
         id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         task_title VARCHAR(255) NOT NULL,
         streak_type VARCHAR(50) DEFAULT 'avoidance',
         current_streak INTEGER DEFAULT 0,
@@ -110,6 +149,7 @@ const initDatabase = async () => {
     await client.query(`
       CREATE TABLE IF NOT EXISTS cookie_jar (
         id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         title VARCHAR(255) NOT NULL,
         description TEXT,
         streak_days INTEGER DEFAULT 0,
@@ -129,4 +169,34 @@ const initDatabase = async () => {
   }
 };
 
-module.exports = { pool, initDatabase };
+// Seed mock leaderboard users
+const seedMockUsers = async () => {
+  const mockUsers = [
+    { name: 'Cristiano Ronaldo', email: 'ronaldo@mock.com', rating: 2847, avatar: 'https://i.pravatar.cc/150?u=ronaldo' },
+    { name: 'Virat Kohli', email: 'kohli@mock.com', rating: 2756, avatar: 'https://i.pravatar.cc/150?u=kohli' },
+    { name: 'Lionel Messi', email: 'messi@mock.com', rating: 2698, avatar: 'https://i.pravatar.cc/150?u=messi' },
+    { name: 'LeBron James', email: 'lebron@mock.com', rating: 2634, avatar: 'https://i.pravatar.cc/150?u=lebron' },
+    { name: 'Serena Williams', email: 'serena@mock.com', rating: 2589, avatar: 'https://i.pravatar.cc/150?u=serena' },
+    { name: 'Sachin Tendulkar', email: 'sachin@mock.com', rating: 2534, avatar: 'https://i.pravatar.cc/150?u=sachin' },
+    { name: 'Michael Jordan', email: 'mj@mock.com', rating: 2487, avatar: 'https://i.pravatar.cc/150?u=mj' },
+    { name: 'Usain Bolt', email: 'bolt@mock.com', rating: 2456, avatar: 'https://i.pravatar.cc/150?u=bolt' },
+    { name: 'Roger Federer', email: 'federer@mock.com', rating: 2412, avatar: 'https://i.pravatar.cc/150?u=federer' },
+    { name: 'Simone Biles', email: 'biles@mock.com', rating: 2389, avatar: 'https://i.pravatar.cc/150?u=biles' },
+  ];
+
+  for (const user of mockUsers) {
+    try {
+      await pool.query(
+        `INSERT INTO users (email, name, avatar_url, current_rating)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (email) DO UPDATE SET current_rating = $4`,
+        [user.email, user.name, user.avatar, user.rating]
+      );
+    } catch (error) {
+      console.log(`Mock user ${user.name} already exists or error:`, error.message);
+    }
+  }
+  console.log('✅ Mock leaderboard users seeded');
+};
+
+module.exports = { pool, initDatabase, seedMockUsers };

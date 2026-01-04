@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { pool, initDatabase } = require('./database');
+const { pool, initDatabase, seedMockUsers } = require('./database');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -8,12 +8,134 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Initialize database on startup
-initDatabase().catch(console.error);
+// Initialize database and seed mock users on startup
+initDatabase().then(() => seedMockUsers()).catch(console.error);
 
 // Health check
 app.get('/', (req, res) => {
     res.send('Achiever API Running! 🚀');
+});
+
+// ========== AUTHENTICATION ENDPOINTS ==========
+
+// Google Sign-In (create or return user)
+app.post('/auth/google', async (req, res) => {
+    try {
+        const { email, name, googleId, avatarUrl } = req.body;
+
+        if (!email || !name) {
+            return res.status(400).json({ error: 'Email and name are required' });
+        }
+
+        // Check if user exists
+        let user = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+
+        if (user.rows.length === 0) {
+            // Create new user
+            const result = await pool.query(
+                `INSERT INTO users (email, name, google_id, avatar_url, current_rating)
+                 VALUES ($1, $2, $3, $4, 1500)
+                 RETURNING *`,
+                [email, name, googleId || null, avatarUrl || null]
+            );
+            user = result;
+        }
+
+        res.json({
+            id: user.rows[0].id,
+            email: user.rows[0].email,
+            name: user.rows[0].name,
+            avatarUrl: user.rows[0].avatar_url,
+            currentRating: user.rows[0].current_rating,
+            createdAt: user.rows[0].created_at
+        });
+    } catch (error) {
+        console.error('Error in Google auth:', error);
+        res.status(500).json({ error: 'Authentication failed' });
+    }
+});
+
+// Get user profile
+app.get('/user/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const result = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const user = result.rows[0];
+        res.json({
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            avatarUrl: user.avatar_url,
+            currentRating: user.current_rating,
+            createdAt: user.created_at
+        });
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        res.status(500).json({ error: 'Failed to fetch user' });
+    }
+});
+
+// Get leaderboard (top 10 + user's rank)
+app.get('/leaderboard', async (req, res) => {
+    try {
+        const { userId } = req.query;
+
+        // Get top 10 users
+        const top10 = await pool.query(
+            `SELECT id, name, avatar_url, current_rating
+             FROM users
+             ORDER BY current_rating DESC
+             LIMIT 10`
+        );
+
+        let userRank = null;
+        let userData = null;
+
+        if (userId) {
+            // Get user's rank
+            const rankResult = await pool.query(
+                `SELECT COUNT(*) + 1 as rank
+                 FROM users
+                 WHERE current_rating > (SELECT current_rating FROM users WHERE id = $1)`,
+                [userId]
+            );
+            userRank = parseInt(rankResult.rows[0].rank);
+
+            // Get user data
+            const userResult = await pool.query(
+                'SELECT id, name, avatar_url, current_rating FROM users WHERE id = $1',
+                [userId]
+            );
+            if (userResult.rows.length > 0) {
+                userData = {
+                    id: userResult.rows[0].id,
+                    name: userResult.rows[0].name,
+                    avatarUrl: userResult.rows[0].avatar_url,
+                    currentRating: userResult.rows[0].current_rating,
+                    rank: userRank
+                };
+            }
+        }
+
+        res.json({
+            leaderboard: top10.rows.map((user, index) => ({
+                rank: index + 1,
+                id: user.id,
+                name: user.name,
+                avatarUrl: user.avatar_url,
+                currentRating: user.current_rating
+            })),
+            currentUser: userData
+        });
+    } catch (error) {
+        console.error('Error fetching leaderboard:', error);
+        res.status(500).json({ error: 'Failed to fetch leaderboard' });
+    }
 });
 
 // ========== RATING ALGORITHM ==========

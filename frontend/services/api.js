@@ -105,3 +105,27 @@ export const addToCookieJar = async (title, description, icon = '🍪') => {
     return data;
 };
 
+// ========== AUTH & USER API ==========
+
+export const googleSignIn = async (email, name, googleId = null, avatarUrl = null) => {
+    const response = await fetch(`${API_URL}/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name, googleId, avatarUrl }),
+    });
+    const data = await response.json();
+    return data;
+};
+
+export const getUserProfile = async (userId) => {
+    const response = await fetch(`${API_URL}/user/${userId}`);
+    const data = await response.json();
+    return data;
+};
+
+export const getLeaderboard = async (userId = null) => {
+    const url = userId ? `${API_URL}/leaderboard?userId=${userId}` : `${API_URL}/leaderboard`;
+    const response = await fetch(url);
+    const data = await response.json();
+    return data;
+};
