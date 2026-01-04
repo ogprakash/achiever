@@ -3,6 +3,7 @@
     "name": "Achiever",
     "slug": "frontend",
     "version": "1.0.0",
+    "scheme": "achiever",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
