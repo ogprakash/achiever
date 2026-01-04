@@ -78,17 +78,22 @@ export default function LeaderboardScreen() {
                 </Text>
             </View>
 
-            {/* Avatar */}
-            <Image
-                source={{ uri: item.avatarUrl || 'https://i.pravatar.cc/150?u=default' }}
+            {/* Avatar - Colored circle with initials */}
+            <View
                 style={{
                     width: 48,
                     height: 48,
                     borderRadius: 24,
                     marginRight: 12,
-                    backgroundColor: '#E5E7EB'
+                    backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'][item.rank % 5],
+                    alignItems: 'center',
+                    justifyContent: 'center'
                 }}
-            />
+            >
+                <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#FFFFFF' }}>
+                    {item.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?'}
+                </Text>
+            </View>
 
             {/* Name */}
             <View style={{ flex: 1 }}>
@@ -183,16 +188,21 @@ export default function LeaderboardScreen() {
                         </Text>
                     </View>
 
-                    <Image
-                        source={{ uri: displayUser.avatarUrl || 'https://i.pravatar.cc/150?u=default' }}
+                    <View
                         style={{
                             width: 40,
                             height: 40,
                             borderRadius: 20,
                             marginRight: 10,
-                            backgroundColor: '#E5E7EB'
+                            backgroundColor: '#10B981',
+                            alignItems: 'center',
+                            justifyContent: 'center'
                         }}
-                    />
+                    >
+                        <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#FFFFFF' }}>
+                            {displayUser.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?'}
+                        </Text>
+                    </View>
 
                     <View style={{ flex: 1 }}>
                         <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>
