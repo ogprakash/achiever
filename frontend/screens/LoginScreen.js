@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
-// import * as WebBrowser from 'expo-web-browser';
-// import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
 import { useAuth } from '../context/AuthContext';
 import { signup, signin } from '../services/api';
 
-// WebBrowser.maybeCompleteAuthSession();
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
     const { signIn } = useAuth();
@@ -17,22 +17,20 @@ export default function LoginScreen() {
     const [error, setError] = useState(''); // Error state for inline display
 
     // Google Auth Request
-    // const [request, response, promptAsync] = Google.useAuthRequest({
-    //     androidClientId: 'YOUR_DESIGNATED_ANDROID_CLIENT_ID.apps.googleusercontent.com',
-    //     iosClientId: 'YOUR_DESIGNATED_IOS_CLIENT_ID.apps.googleusercontent.com',
-    //     webClientId: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
-    // });
-    const request = null; // Placeholder
-    const promptAsync = () => setError("Google Auth temporarily disabled for debugging");
+    const [request, response, promptAsync] = Google.useAuthRequest({
+        // ⚠️ IMPORTANT: You MUST replace these with your own Client IDs from Google Cloud Console
+        // See: https://docs.expo.dev/guides/google-authentication/
+        androidClientId: 'YOUR_DESIGNATED_ANDROID_CLIENT_ID.apps.googleusercontent.com',
+        iosClientId: 'YOUR_DESIGNATED_IOS_CLIENT_ID.apps.googleusercontent.com',
+        webClientId: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
+    });
 
-    /*
     useEffect(() => {
         if (response?.type === 'success') {
             const { authentication } = response;
             fetchUserInfo(authentication.accessToken);
         }
     }, [response]);
-    */
 
     const fetchUserInfo = async (token) => {
         try {

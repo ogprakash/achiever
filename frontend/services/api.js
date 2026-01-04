@@ -25,7 +25,7 @@ export const fetchTasks = async (date, userId) => {
 export const createTask = async (title, importance, assignedDate, userId, options = {}) => {
     const date = assignedDate || getLocalDateString();
     const { is_daily = false, is_cookie_jar = false, task_type = 'standard' } = options;
-    const { is_daily = false, is_cookie_jar = false, task_type = 'standard' } = options;
+
 
     const response = await fetch(`${API_URL}/tasks`, {
         method: 'POST',
