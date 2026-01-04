@@ -360,12 +360,21 @@ app.delete('/tasks/:id', async (req, res) => {
 app.get('/stats/daily/:date', async (req, res) => {
     try {
         const { date } = req.params;
+        const { userId } = req.query;
 
-        // Get all tasks for the date
-        const tasksResult = await pool.query(
-            'SELECT * FROM tasks WHERE assigned_date = $1',
-            [date]
-        );
+        // Get all tasks for the date (filter by user if provided)
+        let tasksResult;
+        if (userId) {
+            tasksResult = await pool.query(
+                'SELECT * FROM tasks WHERE assigned_date = $1 AND user_id = $2',
+                [date, userId]
+            );
+        } else {
+            tasksResult = await pool.query(
+                'SELECT * FROM tasks WHERE assigned_date = $1',
+                [date]
+            );
+        }
 
         const tasks = tasksResult.rows;
 
@@ -399,13 +408,27 @@ app.get('/stats/daily/:date', async (req, res) => {
         );
 
         // ========== RATING CALCULATION ==========
-        // Get rating from BEFORE today to use as baseline
-        const prevRatingResult = await pool.query(
-            'SELECT rating FROM rating_history WHERE date < $1 ORDER BY date DESC LIMIT 1',
-            [date]
-        );
+        // Get previous rating - from user table if userId provided, otherwise from rating_history
+        let previousRating = STARTING_RATING;
 
-        let previousRating = prevRatingResult.rows.length > 0 ? prevRatingResult.rows[0].rating : STARTING_RATING;
+        if (userId) {
+            const userRating = await pool.query(
+                'SELECT current_rating FROM users WHERE id = $1',
+                [userId]
+            );
+            if (userRating.rows.length > 0) {
+                previousRating = userRating.rows[0].current_rating || STARTING_RATING;
+            }
+        } else {
+            const prevRatingResult = await pool.query(
+                'SELECT rating FROM rating_history WHERE date < $1 ORDER BY date DESC LIMIT 1',
+                [date]
+            );
+            if (prevRatingResult.rows.length > 0) {
+                previousRating = prevRatingResult.rows[0].rating;
+            }
+        }
+
         let newRating = previousRating;
         let ratingChange = 0;
 
@@ -413,6 +436,14 @@ app.get('/stats/daily/:date', async (req, res) => {
             // Calculate rating change based on performance vs PREVIOUS rating
             ratingChange = calculateRatingChange(previousRating, percentageScore);
             newRating = Math.max(MIN_RATING, Math.min(MAX_RATING, previousRating + ratingChange));
+
+            // Update user's current_rating in users table (THIS IS THE KEY FIX!)
+            if (userId) {
+                await pool.query(
+                    'UPDATE users SET current_rating = $1 WHERE id = $2',
+                    [newRating, userId]
+                );
+            }
 
             // Check if we already have a rating entry for today
             const existingRating = await pool.query(

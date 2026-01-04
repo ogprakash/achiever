@@ -19,7 +19,7 @@ export default function HomeScreen({ navigation }) {
             const today = new Date().toISOString().split('T')[0];
             const [tasksData, scoreData] = await Promise.all([
                 fetchTasks(today, user?.id),
-                getDailyScore(today)
+                getDailyScore(today, user?.id)
             ]);
 
             setTasks(tasksData || []);

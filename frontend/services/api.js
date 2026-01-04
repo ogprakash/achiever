@@ -48,9 +48,12 @@ export const deleteTask = async (taskId) => {
     return result;
 };
 
-export const getDailyScore = async (date) => {
+export const getDailyScore = async (date, userId) => {
     const targetDate = date || new Date().toISOString().split('T')[0];
-    const response = await fetch(`${API_URL}/stats/daily/${targetDate}`);
+    const url = userId
+        ? `${API_URL}/stats/daily/${targetDate}?userId=${userId}`
+        : `${API_URL}/stats/daily/${targetDate}`;
+    const response = await fetch(url);
     const data = await response.json();
     return data;
 };
