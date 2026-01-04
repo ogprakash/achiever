@@ -54,6 +54,21 @@ const initDatabase = async () => {
       END $$;
     `);
 
+    // Update importance constraint to allow 0-4 (drop old constraint, add new one)
+    await client.query(`
+      DO $$
+      BEGIN
+        -- Drop old constraint if it exists
+        IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'tasks_importance_check') THEN
+          ALTER TABLE tasks DROP CONSTRAINT tasks_importance_check;
+        END IF;
+        -- Add new constraint allowing 0-4
+        ALTER TABLE tasks ADD CONSTRAINT tasks_importance_check CHECK (importance >= 0 AND importance <= 4);
+      EXCEPTION WHEN duplicate_object THEN
+        NULL; -- Constraint already exists with correct values
+      END $$;
+    `);
+
     // Create daily_scores table
     await client.query(`
       CREATE TABLE IF NOT EXISTS daily_scores (
