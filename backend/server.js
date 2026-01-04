@@ -160,10 +160,19 @@ app.get('/stats/daily/:date', async (req, res) => {
         );
 
         const tasks = tasksResult.rows;
-        const totalPossiblePoints = tasks.reduce((sum, task) => sum + task.importance, 0);
+
+        // Calculate weights: P0 = 5 points, P1 = 4 points, P2 = 3 points, P3 = 2 points, P4 = 1 point
+        // Cookie Jar tasks get 1.5x bonus because they're harder (resisting temptations)
+        const getWeight = (task) => {
+            const baseWeight = 5 - task.importance;
+            const cookieJarBonus = task.is_cookie_jar ? 1.5 : 1;
+            return Math.round(baseWeight * cookieJarBonus);
+        };
+
+        const totalPossiblePoints = tasks.reduce((sum, task) => sum + getWeight(task), 0);
         const earnedPoints = tasks
             .filter(task => task.completed)
-            .reduce((sum, task) => sum + task.importance, 0);
+            .reduce((sum, task) => sum + getWeight(task), 0);
 
         const percentageScore = totalPossiblePoints > 0
             ? (earnedPoints / totalPossiblePoints) * 100
