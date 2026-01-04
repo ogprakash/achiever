@@ -2,9 +2,11 @@ import { useEffect, useState, useCallback } from 'react';
 import { View, Text, FlatList, RefreshControl, ScrollView } from 'react-native';
 import TaskCard from '../components/TaskCard';
 import UserProfileHeader from '../components/UserProfileHeader';
+import { useAuth } from '../context/AuthContext';
 import { fetchTasks, toggleTaskCompletion, getDailyScore, deleteTask } from '../services/api';
 
 export default function HomeScreen({ navigation }) {
+    const { user } = useAuth();
     const [tasks, setTasks] = useState([]);
     const [dailyScore, setDailyScore] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -14,7 +16,7 @@ export default function HomeScreen({ navigation }) {
         try {
             const today = new Date().toISOString().split('T')[0];
             const [tasksData, scoreData] = await Promise.all([
-                fetchTasks(today),
+                fetchTasks(today, user?.id),
                 getDailyScore(today)
             ]);
 

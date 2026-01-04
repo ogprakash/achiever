@@ -259,15 +259,20 @@ async function getCurrentRatingFromDB() {
 
 // ========== TASK ENDPOINTS ==========
 
-// Get all tasks for a specific date
+// Get all tasks for a specific user and date
 app.get('/tasks', async (req, res) => {
     try {
-        const { date } = req.query; // Format: YYYY-MM-DD
+        const { date, userId } = req.query; // Format: YYYY-MM-DD
         const targetDate = date || new Date().toISOString().split('T')[0];
 
+        // If userId provided, filter by user. Otherwise return empty for safety
+        if (!userId) {
+            return res.json([]); // No userId = no tasks (data isolation)
+        }
+
         const result = await pool.query(
-            'SELECT * FROM tasks WHERE assigned_date = $1 ORDER BY importance ASC, created_at ASC',
-            [targetDate]
+            'SELECT * FROM tasks WHERE assigned_date = $1 AND user_id = $2 ORDER BY importance ASC, created_at ASC',
+            [targetDate, userId]
         );
 
         res.json(result.rows);
@@ -277,22 +282,26 @@ app.get('/tasks', async (req, res) => {
     }
 });
 
-// Create a new task
+// Create a new task for a user
 app.post('/tasks', async (req, res) => {
     try {
-        const { title, importance, assigned_date, is_daily = false, is_cookie_jar = false, task_type = 'standard' } = req.body;
+        const { title, importance, assigned_date, user_id, is_daily = false, is_cookie_jar = false, task_type = 'standard' } = req.body;
         const date = assigned_date || new Date().toISOString().split('T')[0];
 
+        if (!user_id) {
+            return res.status(400).json({ error: 'user_id is required' });
+        }
+
         const result = await pool.query(
-            'INSERT INTO tasks (title, importance, assigned_date, is_daily, is_cookie_jar, task_type) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-            [title, importance, date, is_daily, is_cookie_jar, task_type]
+            'INSERT INTO tasks (title, importance, assigned_date, user_id, is_daily, is_cookie_jar, task_type) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+            [title, importance, date, user_id, is_daily, is_cookie_jar, task_type]
         );
 
         // If it's a cookie jar task, create a streak for it
         if (is_cookie_jar) {
             await pool.query(
-                'INSERT INTO streaks (task_title, streak_type, current_streak, last_completed_date) VALUES ($1, $2, 0, NULL) ON CONFLICT DO NOTHING',
-                [title, 'avoidance']
+                'INSERT INTO streaks (task_title, streak_type, current_streak, last_completed_date, user_id) VALUES ($1, $2, 0, NULL, $3) ON CONFLICT DO NOTHING',
+                [title, 'avoidance', user_id]
             );
         }
 
@@ -637,6 +646,33 @@ app.post('/cookie-jar', async (req, res) => {
     } catch (error) {
         console.error('Error adding to cookie jar:', error);
         res.status(500).json({ error: 'Failed to add to cookie jar' });
+    }
+});
+
+// ========== DATABASE RESET ==========
+
+// Reset database (clear all user data except mock leaderboard users)
+app.post('/db/reset', async (req, res) => {
+    try {
+        // Clear all user-generated data
+        await pool.query('DELETE FROM cookie_jar');
+        await pool.query('DELETE FROM streaks');
+        await pool.query('DELETE FROM rating_history');
+        await pool.query('DELETE FROM daily_scores');
+        await pool.query('DELETE FROM tasks');
+        // Delete real users (keep mock users by email pattern)
+        await pool.query("DELETE FROM users WHERE email NOT LIKE '%@mock.com'");
+
+        // Reseed mock users
+        await seedMockUsers();
+
+        res.json({
+            message: 'Database reset successfully. Mock leaderboard users restored.',
+            startingRating: STARTING_RATING
+        });
+    } catch (error) {
+        console.error('Error resetting database:', error);
+        res.status(500).json({ error: 'Failed to reset database' });
     }
 });
 

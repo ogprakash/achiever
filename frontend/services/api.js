@@ -1,14 +1,17 @@
 const API_URL = 'https://achiever-production-e895.up.railway.app';
 
 // Task API functions
-export const fetchTasks = async (date) => {
+export const fetchTasks = async (date, userId) => {
     const targetDate = date || new Date().toISOString().split('T')[0];
-    const response = await fetch(`${API_URL}/tasks?date=${targetDate}`);
+    const url = userId
+        ? `${API_URL}/tasks?date=${targetDate}&userId=${userId}`
+        : `${API_URL}/tasks?date=${targetDate}`;
+    const response = await fetch(url);
     const data = await response.json();
     return data;
 };
 
-export const createTask = async (title, importance, assignedDate, options = {}) => {
+export const createTask = async (title, importance, assignedDate, userId, options = {}) => {
     const date = assignedDate || new Date().toISOString().split('T')[0];
     const { is_daily = false, is_cookie_jar = false, task_type = 'standard' } = options;
 
@@ -19,6 +22,7 @@ export const createTask = async (title, importance, assignedDate, options = {}) 
             title,
             importance,
             assigned_date: date,
+            user_id: userId,
             is_daily,
             is_cookie_jar,
             task_type

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Switch } from 'react-native';
 import Slider from '@react-native-community/slider';
+import { useAuth } from '../context/AuthContext';
 import { createTask } from '../services/api';
 
 export default function AddTaskScreen({ navigation }) {
+    const { user } = useAuth();
     const [taskName, setTaskName] = useState('');
     const [importance, setImportance] = useState(0);
     const [selectedDate, setSelectedDate] = useState('Today');
@@ -16,6 +18,11 @@ export default function AddTaskScreen({ navigation }) {
             return;
         }
 
+        if (!user?.id) {
+            Alert.alert('Error', 'Please sign in to create tasks');
+            return;
+        }
+
         try {
             const date = selectedDate === 'Today'
                 ? new Date().toISOString().split('T')[0]
@@ -24,7 +31,7 @@ export default function AddTaskScreen({ navigation }) {
             // Determine task type based on options
             const taskType = isCookieJar ? 'avoidance' : 'standard';
 
-            await createTask(taskName, importance, date, {
+            await createTask(taskName, importance, date, user.id, {
                 is_daily: isDaily,
                 is_cookie_jar: isCookieJar,
                 task_type: taskType
