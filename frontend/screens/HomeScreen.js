@@ -45,20 +45,37 @@ export default function HomeScreen({ navigation }) {
     }, []);
 
     const handleToggleTask = async (taskId) => {
+        // Optimistic UI update - update immediately before API call
+        setTasks(prevTasks => prevTasks.map(task =>
+            task.id === taskId
+                ? { ...task, completed: !task.completed, completed_at: task.completed ? null : new Date().toISOString() }
+                : task
+        ));
+
         try {
             await toggleTaskCompletion(taskId);
-            loadData(); // Reload to update score
+            // Silently refresh score in background (don't wait)
+            getDailyScore().then(setDailyScore).catch(console.error);
         } catch (error) {
             console.error('Error toggling task:', error);
+            // Revert on error
+            loadData();
         }
     };
 
     const handleDeleteTask = async (taskId) => {
+        // Optimistic UI update - remove immediately
+        const previousTasks = tasks;
+        setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+
         try {
             await deleteTask(taskId);
-            loadData(); // Reload to update list
+            // Refresh score in background
+            getDailyScore().then(setDailyScore).catch(console.error);
         } catch (error) {
             console.error('Error deleting task:', error);
+            // Revert on error
+            setTasks(previousTasks);
         }
     };
 
