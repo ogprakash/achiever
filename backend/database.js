@@ -172,16 +172,16 @@ const initDatabase = async () => {
 // Seed mock leaderboard users
 const seedMockUsers = async () => {
   const mockUsers = [
-    { name: 'Cristiano Ronaldo', email: 'ronaldo@mock.com', rating: 2847, avatar: 'https://i.pravatar.cc/150?u=ronaldo' },
-    { name: 'Virat Kohli', email: 'kohli@mock.com', rating: 2756, avatar: 'https://i.pravatar.cc/150?u=kohli' },
-    { name: 'Lionel Messi', email: 'messi@mock.com', rating: 2698, avatar: 'https://i.pravatar.cc/150?u=messi' },
-    { name: 'LeBron James', email: 'lebron@mock.com', rating: 2634, avatar: 'https://i.pravatar.cc/150?u=lebron' },
-    { name: 'Serena Williams', email: 'serena@mock.com', rating: 2589, avatar: 'https://i.pravatar.cc/150?u=serena' },
-    { name: 'Sachin Tendulkar', email: 'sachin@mock.com', rating: 2534, avatar: 'https://i.pravatar.cc/150?u=sachin' },
-    { name: 'Michael Jordan', email: 'mj@mock.com', rating: 2487, avatar: 'https://i.pravatar.cc/150?u=mj' },
-    { name: 'Usain Bolt', email: 'bolt@mock.com', rating: 2456, avatar: 'https://i.pravatar.cc/150?u=bolt' },
-    { name: 'Roger Federer', email: 'federer@mock.com', rating: 2412, avatar: 'https://i.pravatar.cc/150?u=federer' },
-    { name: 'Simone Biles', email: 'biles@mock.com', rating: 2389, avatar: 'https://i.pravatar.cc/150?u=biles' },
+    { name: 'Cristiano Ronaldo', email: 'ronaldo@mock.com', rating: 3847, avatar: 'https://i.pravatar.cc/150?u=ronaldo' },
+    { name: 'Virat Kohli', email: 'kohli@mock.com', rating: 3756, avatar: 'https://i.pravatar.cc/150?u=kohli' },
+    { name: 'David Goggins', email: 'goggins@mock.com', rating: 3698, avatar: 'https://i.pravatar.cc/150?u=goggins' },
+    { name: 'Lionel Messi', email: 'messi@mock.com', rating: 3634, avatar: 'https://i.pravatar.cc/150?u=messi' },
+    { name: 'Kobe Bryant', email: 'kobe@mock.com', rating: 3589, avatar: 'https://i.pravatar.cc/150?u=kobe' },
+    { name: 'Sachin Tendulkar', email: 'sachin@mock.com', rating: 3534, avatar: 'https://i.pravatar.cc/150?u=sachin' },
+    { name: 'Michael Jordan', email: 'mj@mock.com', rating: 3487, avatar: 'https://i.pravatar.cc/150?u=mj' },
+    { name: 'Usain Bolt', email: 'bolt@mock.com', rating: 3356, avatar: 'https://i.pravatar.cc/150?u=bolt' },
+    { name: 'Roger Federer', email: 'federer@mock.com', rating: 3312, avatar: 'https://i.pravatar.cc/150?u=federer' },
+    { name: 'Elon Musk', email: 'elon@mock.com', rating: 3289, avatar: 'https://i.pravatar.cc/150?u=elon' },
   ];
 
   for (const user of mockUsers) {

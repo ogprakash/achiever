@@ -119,16 +119,90 @@ export default function LeaderboardScreen() {
         );
     }
 
+    // Mock current user for demo (until auth is implemented)
+    const mockCurrentUser = {
+        id: 999,
+        name: 'You',
+        avatarUrl: 'https://i.pravatar.cc/150?u=prakash',
+        currentRating: 1500,
+        rank: 11 // Will be dynamically calculated when auth is ready
+    };
+
+    const displayUser = currentUser || mockCurrentUser;
+
     return (
         <View style={{ flex: 1, backgroundColor: '#F3F4F6' }}>
-            {/* Header */}
-            <View style={{ backgroundColor: '#06b6d4', paddingTop: 48, paddingBottom: 20, paddingHorizontal: 16 }}>
+            {/* Header with User Rank */}
+            <View style={{ backgroundColor: '#06b6d4', paddingTop: 48, paddingBottom: 16, paddingHorizontal: 16 }}>
                 <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#FFFFFF', textAlign: 'center' }}>
                     🏆 Leaderboard
                 </Text>
                 <Text style={{ fontSize: 14, color: '#CFFAFE', textAlign: 'center', marginTop: 4 }}>
                     Top achievers this season
                 </Text>
+
+                {/* Your Rank Card - At Top */}
+                <View
+                    style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: 'rgba(255,255,255,0.95)',
+                        padding: 12,
+                        marginTop: 16,
+                        borderRadius: 12,
+                        borderWidth: 2,
+                        borderColor: '#FCD34D'
+                    }}
+                >
+                    <View
+                        style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 18,
+                            backgroundColor: '#3B82F6',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginRight: 10
+                        }}
+                    >
+                        <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#FFF' }}>
+                            #{displayUser.rank}
+                        </Text>
+                    </View>
+
+                    <Image
+                        source={{ uri: displayUser.avatarUrl || 'https://i.pravatar.cc/150?u=default' }}
+                        style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 20,
+                            marginRight: 10,
+                            backgroundColor: '#E5E7EB'
+                        }}
+                    />
+
+                    <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>
+                            {displayUser.name} {displayUser.id === 999 ? '(You)' : ''}
+                        </Text>
+                        <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                            Your current ranking
+                        </Text>
+                    </View>
+
+                    <View
+                        style={{
+                            backgroundColor: '#3B82F6',
+                            paddingHorizontal: 10,
+                            paddingVertical: 4,
+                            borderRadius: 6
+                        }}
+                    >
+                        <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#FFFFFF' }}>
+                            {displayUser.currentRating}
+                        </Text>
+                    </View>
+                </View>
             </View>
 
             {/* Leaderboard List */}
