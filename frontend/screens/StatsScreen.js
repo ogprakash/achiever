@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
+import { useAuth } from '../context/AuthContext';
 import { getCurrentRating, getRatingHistory, getDailyScore, getLocalDateString } from '../services/api';
 
 const screenWidth = Dimensions.get('window').width;
 
 export default function StatsScreen() {
+    const { user } = useAuth();
     const [rating, setRating] = useState(1200); // Starting rating
     const [ratingHistory, setRatingHistory] = useState([]);
     const [todayScore, setTodayScore] = useState(null);
@@ -17,16 +19,18 @@ export default function StatsScreen() {
     });
 
     useEffect(() => {
-        loadStats();
-    }, []);
+        if (user?.id) {
+            loadStats();
+        }
+    }, [user?.id]);
 
     const loadStats = async () => {
         try {
             const today = getLocalDateString();
             const [ratingData, historyData, scoreData] = await Promise.all([
-                getCurrentRating(),
-                getRatingHistory(365), // Get full year of data
-                getDailyScore(today)
+                getCurrentRating(user?.id),
+                getRatingHistory(365, user?.id), // Get full year of data, pass userId
+                getDailyScore(today, user?.id)
             ]);
 
             setRating(ratingData.rating);

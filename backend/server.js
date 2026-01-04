@@ -511,11 +511,28 @@ app.get('/stats/daily/:date', async (req, res) => {
 // Get current rating
 app.get('/stats/rating/current', async (req, res) => {
     try {
-        const result = await pool.query(
-            'SELECT * FROM rating_history ORDER BY date DESC LIMIT 1'
-        );
+        const { userId } = req.query;
+        let query = 'SELECT * FROM rating_history ';
+        let params = [];
 
-        const currentRating = result.rows.length > 0 ? result.rows[0].rating : 1200; // Default starting rating
+        if (userId) {
+            query += 'WHERE user_id = $1 ';
+            params.push(userId);
+        }
+
+        query += 'ORDER BY date DESC LIMIT 1';
+
+        const result = await pool.query(query, params);
+
+        // If user specific request but no history, check user table
+        if (userId && result.rows.length === 0) {
+            const userResult = await pool.query('SELECT current_rating FROM users WHERE id = $1', [userId]);
+            if (userResult.rows.length > 0) {
+                return res.json({ rating: userResult.rows[0].current_rating });
+            }
+        }
+
+        const currentRating = result.rows.length > 0 ? result.rows[0].rating : 1500; // Default starting rating
         res.json({ rating: currentRating });
     } catch (error) {
         console.error('Error fetching rating:', error);
@@ -526,12 +543,21 @@ app.get('/stats/rating/current', async (req, res) => {
 // Get rating history
 app.get('/stats/rating/history', async (req, res) => {
     try {
-        const { days = 30 } = req.query;
+        const { days = 30, userId } = req.query;
+        let query = 'SELECT * FROM rating_history ';
+        let params = [];
 
-        const result = await pool.query(
-            'SELECT * FROM rating_history ORDER BY date DESC LIMIT $1',
-            [days]
-        );
+        if (userId) {
+            query += 'WHERE user_id = $1 ';
+            params.push(userId);
+        }
+
+        // Add sorting and limiting
+        // Note: For history chart we want chronological order, but we fetch reverse first to get LATEST 30 days
+        query += `ORDER BY date DESC LIMIT $${params.length + 1}`;
+        params.push(days);
+
+        const result = await pool.query(query, params);
 
         res.json(result.rows.reverse()); // Oldest first for charts
     } catch (error) {

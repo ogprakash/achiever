@@ -70,14 +70,20 @@ export const getDailyScore = async (date, userId) => {
     return data;
 };
 
-export const getCurrentRating = async () => {
-    const response = await fetch(`${API_URL}/stats/rating/current`);
+export const getCurrentRating = async (userId) => {
+    const url = userId
+        ? `${API_URL}/stats/rating/current?userId=${userId}`
+        : `${API_URL}/stats/rating/current`;
+    const response = await fetch(url);
     const data = await response.json();
     return data;
 };
 
-export const getRatingHistory = async (days = 30) => {
-    const response = await fetch(`${API_URL}/stats/rating/history?days=${days}`);
+export const getRatingHistory = async (days = 30, userId) => {
+    const url = userId
+        ? `${API_URL}/stats/rating/history?days=${days}&userId=${userId}`
+        : `${API_URL}/stats/rating/history?days=${days}`;
+    const response = await fetch(url);
     const data = await response.json();
     return data;
 };
