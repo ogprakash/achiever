@@ -1,8 +1,19 @@
 const API_URL = 'https://achiever-production-e895.up.railway.app';
 
+// Helper to get local date string YYYY-MM-DD
+// format: 2026-01-04
+export const getLocalDateString = () => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset() * 60000;
+    const localDate = new Date(now.getTime() - offset);
+    return localDate.toISOString().split('T')[0];
+};
+
 // Task API functions
 export const fetchTasks = async (date, userId) => {
-    const targetDate = date || new Date().toISOString().split('T')[0];
+    // If date is provided, use it. Otherwise use correct LOCAL date.
+    const targetDate = date || getLocalDateString();
+
     const url = userId
         ? `${API_URL}/tasks?date=${targetDate}&userId=${userId}`
         : `${API_URL}/tasks?date=${targetDate}`;
@@ -12,7 +23,8 @@ export const fetchTasks = async (date, userId) => {
 };
 
 export const createTask = async (title, importance, assignedDate, userId, options = {}) => {
-    const date = assignedDate || new Date().toISOString().split('T')[0];
+    const date = assignedDate || getLocalDateString();
+    const { is_daily = false, is_cookie_jar = false, task_type = 'standard' } = options;
     const { is_daily = false, is_cookie_jar = false, task_type = 'standard' } = options;
 
     const response = await fetch(`${API_URL}/tasks`, {
@@ -49,7 +61,7 @@ export const deleteTask = async (taskId) => {
 };
 
 export const getDailyScore = async (date, userId) => {
-    const targetDate = date || new Date().toISOString().split('T')[0];
+    const targetDate = date || getLocalDateString();
     const url = userId
         ? `${API_URL}/stats/daily/${targetDate}?userId=${userId}`
         : `${API_URL}/stats/daily/${targetDate}`;

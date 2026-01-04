@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
-import { getCurrentRating, getRatingHistory, getDailyScore } from '../services/api';
+import { getCurrentRating, getRatingHistory, getDailyScore, getLocalDateString } from '../services/api';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -22,7 +22,7 @@ export default function StatsScreen() {
 
     const loadStats = async () => {
         try {
-            const today = new Date().toISOString().split('T')[0];
+            const today = getLocalDateString();
             const [ratingData, historyData, scoreData] = await Promise.all([
                 getCurrentRating(),
                 getRatingHistory(365), // Get full year of data

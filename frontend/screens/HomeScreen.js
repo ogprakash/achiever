@@ -3,7 +3,7 @@ import { View, Text, FlatList, RefreshControl, ScrollView } from 'react-native';
 import TaskCard from '../components/TaskCard';
 import UserProfileHeader from '../components/UserProfileHeader';
 import { useAuth } from '../context/AuthContext';
-import { fetchTasks, toggleTaskCompletion, getDailyScore, deleteTask } from '../services/api';
+import { fetchTasks, toggleTaskCompletion, getDailyScore, deleteTask, getLocalDateString } from '../services/api';
 
 export default function HomeScreen({ navigation }) {
     const { user } = useAuth();
@@ -16,7 +16,7 @@ export default function HomeScreen({ navigation }) {
     const loadData = async () => {
         try {
             setError(null);
-            const today = new Date().toISOString().split('T')[0];
+            const today = getLocalDateString();
             const [tasksData, scoreData] = await Promise.all([
                 fetchTasks(today, user?.id),
                 getDailyScore(today, user?.id)

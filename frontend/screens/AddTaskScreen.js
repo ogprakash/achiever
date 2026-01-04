@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Switch } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { useAuth } from '../context/AuthContext';
-import { createTask } from '../services/api';
+import { createTask, getLocalDateString } from '../services/api';
 
 export default function AddTaskScreen({ navigation }) {
     const { user } = useAuth();
@@ -25,7 +25,7 @@ export default function AddTaskScreen({ navigation }) {
 
         try {
             const date = selectedDate === 'Today'
-                ? new Date().toISOString().split('T')[0]
+                ? getLocalDateString()
                 : selectedDate;
 
             // Determine task type based on options
