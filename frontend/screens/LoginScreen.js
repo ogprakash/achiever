@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, Alert, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { signup, signin } from '../services/api';
 
@@ -9,24 +9,27 @@ export default function LoginScreen() {
     const [email, setEmail] = useState('');
     const [name, setName] = useState('');
     const [password, setPassword] = useState('');
-    const [isSignUp, setIsSignUp] = useState(false); // Toggle between Sign In and Sign Up
+    const [isSignUp, setIsSignUp] = useState(false);
+    const [error, setError] = useState(''); // Error state for inline display
 
     const handleAuth = async () => {
+        setError(''); // Clear previous error
+
         // Validate email
         if (!email || !email.includes('@')) {
-            Alert.alert('Error', 'Please enter a valid email');
+            setError('Please enter a valid email');
             return;
         }
 
         // Validate password
         if (!password || password.length < 4) {
-            Alert.alert('Error', 'Password must be at least 4 characters');
+            setError('Password must be at least 4 characters');
             return;
         }
 
         // Validate name for signup
         if (isSignUp && !name.trim()) {
-            Alert.alert('Error', 'Please enter your name');
+            setError('Please enter your name');
             return;
         }
 
@@ -41,8 +44,8 @@ export default function LoginScreen() {
             }
 
             await signIn(userData);
-        } catch (error) {
-            Alert.alert('Error', error.message || 'Authentication failed');
+        } catch (err) {
+            setError(err.message || 'Authentication failed');
         } finally {
             setLoading(false);
         }
@@ -67,6 +70,23 @@ export default function LoginScreen() {
                         Track your tasks, build discipline,{'\n'}climb the leaderboard
                     </Text>
                 </View>
+
+                {/* Error Message */}
+                {error ? (
+                    <View style={{
+                        backgroundColor: '#FEE2E2',
+                        padding: 12,
+                        borderRadius: 8,
+                        marginBottom: 16,
+                        width: '100%',
+                        borderWidth: 1,
+                        borderColor: '#EF4444'
+                    }}>
+                        <Text style={{ color: '#DC2626', fontWeight: '600', textAlign: 'center' }}>
+                            ⚠️ {error}
+                        </Text>
+                    </View>
+                ) : null}
 
                 {/* Auth Form */}
                 <View style={{ width: '100%' }}>
