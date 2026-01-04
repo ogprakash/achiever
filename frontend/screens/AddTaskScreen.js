@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Switch } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { createTask } from '../services/api';
 
@@ -7,6 +7,8 @@ export default function AddTaskScreen({ navigation }) {
     const [taskName, setTaskName] = useState('');
     const [importance, setImportance] = useState(2);
     const [selectedDate, setSelectedDate] = useState('Today');
+    const [isDaily, setIsDaily] = useState(false);
+    const [isCookieJar, setIsCookieJar] = useState(false);
 
     const handleSaveTask = async () => {
         if (!taskName.trim()) {
@@ -19,14 +21,27 @@ export default function AddTaskScreen({ navigation }) {
                 ? new Date().toISOString().split('T')[0]
                 : selectedDate;
 
-            await createTask(taskName, importance, date);
+            // Determine task type based on options
+            const taskType = isCookieJar ? 'avoidance' : 'standard';
 
-            Alert.alert('Success', 'Task added successfully!');
+            await createTask(taskName, importance, date, {
+                is_daily: isDaily,
+                is_cookie_jar: isCookieJar,
+                task_type: taskType
+            });
+
+            const successMessage = isCookieJar
+                ? 'Cookie Jar task created! Track your streak in the Cookie Jar tab.'
+                : 'Task added successfully!';
+
+            Alert.alert('Success', successMessage);
             setTaskName('');
             setImportance(2);
+            setIsDaily(false);
+            setIsCookieJar(false);
 
-            // Navigate to Home screen to see the task
-            navigation.navigate('Home');
+            // Navigate to appropriate screen
+            navigation.navigate(isCookieJar ? 'CookieJar' : 'Home');
         } catch (error) {
             console.error('Error saving task:', error);
             Alert.alert('Error', 'Failed to save task. Make sure backend is running.');
@@ -46,7 +61,7 @@ export default function AddTaskScreen({ navigation }) {
                     <Text className="text-sm font-semibold text-gray-700 mb-2">Task Name</Text>
                     <TextInput
                         className="bg-white border border-gray-200 rounded-xl px-4 py-4 text-base text-gray-800"
-                        placeholder='e.g., "Mow the lawn"'
+                        placeholder={isCookieJar ? 'e.g., "No Instagram Reels"' : 'e.g., "Mow the lawn"'}
                         placeholderTextColor="#9ca3af"
                         value={taskName}
                         onChangeText={setTaskName}
@@ -63,20 +78,62 @@ export default function AddTaskScreen({ navigation }) {
                     </View>
 
                     <Slider
-                        style={{ width: '100%', height: 50 }}
                         minimumValue={1}
                         maximumValue={4}
                         step={1}
                         value={importance}
-                        onValueChange={setImportance}
+                        onValueChange={(val) => setImportance(Math.round(val))}
                         minimumTrackTintColor="#06b6d4"
                         maximumTrackTintColor="#d1d5db"
-                        thumbTintColor="#06b6d4"
                     />
 
                     <View className="flex-row justify-between mt-2">
                         <Text className="text-xs text-gray-500">Priority 1</Text>
                         <Text className="text-xs text-gray-500">Priority 4</Text>
+                    </View>
+                </View>
+
+                {/* Task Type Options */}
+                <View className="mb-6">
+                    <Text className="text-sm font-semibold text-gray-700 mb-3">Task Options</Text>
+
+                    {/* Daily Task Toggle */}
+                    <View className="bg-white border border-gray-200 rounded-xl p-4 mb-3 flex-row items-center justify-between">
+                        <View className="flex-1 mr-4">
+                            <View className="flex-row items-center">
+                                <Text className="text-base text-gray-800 font-semibold">🔄 Daily Task</Text>
+                            </View>
+                            <Text className="text-xs text-gray-500 mt-1">
+                                Repeats every day automatically
+                            </Text>
+                        </View>
+                        <Switch
+                            value={isDaily}
+                            onValueChange={setIsDaily}
+                            trackColor={{ false: '#d1d5db', true: '#06b6d4' }}
+                            thumbColor={isDaily ? '#ffffff' : '#f4f4f5'}
+                        />
+                    </View>
+
+                    {/* Cookie Jar Toggle */}
+                    <View className="bg-white border border-yellow-200 rounded-xl p-4 flex-row items-center justify-between">
+                        <View className="flex-1 mr-4">
+                            <View className="flex-row items-center">
+                                <Text className="text-base text-gray-800 font-semibold">🍪 Cookie Jar Task</Text>
+                            </View>
+                            <Text className="text-xs text-gray-500 mt-1">
+                                Avoidance task - Track streak for NOT doing something
+                            </Text>
+                            <Text className="text-xs text-orange-500 mt-1">
+                                e.g., "No Masturbation", "No Instagram Reels"
+                            </Text>
+                        </View>
+                        <Switch
+                            value={isCookieJar}
+                            onValueChange={setIsCookieJar}
+                            trackColor={{ false: '#d1d5db', true: '#f59e0b' }}
+                            thumbColor={isCookieJar ? '#ffffff' : '#f4f4f5'}
+                        />
                     </View>
                 </View>
 
@@ -97,13 +154,16 @@ export default function AddTaskScreen({ navigation }) {
 
                 {/* Save Button */}
                 <TouchableOpacity
-                    className="bg-cyan-500 rounded-xl py-4 items-center shadow-lg"
+                    className={`${isCookieJar ? 'bg-yellow-500' : 'bg-cyan-500'} rounded-xl py-4 items-center shadow-lg`}
                     onPress={handleSaveTask}
                     activeOpacity={0.8}
                 >
-                    <Text className="text-white font-bold text-lg">Save Task</Text>
+                    <Text className="text-white font-bold text-lg">
+                        {isCookieJar ? '🍪 Create Cookie Jar Task' : 'Save Task'}
+                    </Text>
                 </TouchableOpacity>
             </View>
         </ScrollView>
     );
 }
+

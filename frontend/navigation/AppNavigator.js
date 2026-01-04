@@ -6,25 +6,32 @@ import { View, Text } from 'react-native';
 import HomeScreen from '../screens/HomeScreen';
 import AddTaskScreen from '../screens/AddTaskScreen';
 import StatsScreen from '../screens/StatsScreen';
+import CookieJarScreen from '../screens/CookieJarScreen';
 
 const Tab = createBottomTabNavigator();
 
 // Simple icon components (we'll use these for now, can upgrade to icons library later)
 const HomeIcon = ({ focused }) => (
-    <View className={`w-8 h-8 items-center justify-center rounded-lg ${focused ? 'bg-blue-100' : ''}`}>
-        <Text className={`text-xl ${focused ? 'text-blue-500' : 'text-gray-400'}`}>🏠</Text>
+    <View style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: focused === true ? '#dbeafe' : 'transparent' }}>
+        <Text style={{ fontSize: 20, color: focused === true ? '#3b82f6' : '#9ca3af' }}>🏠</Text>
     </View>
 );
 
 const AddIcon = ({ focused }) => (
-    <View className={`w-12 h-12 items-center justify-center rounded-full ${focused ? 'bg-blue-500' : 'bg-gray-700'}`}>
-        <Text className="text-2xl text-white">+</Text>
+    <View style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 24, backgroundColor: focused === true ? '#3b82f6' : '#374151' }}>
+        <Text style={{ fontSize: 24, color: '#ffffff' }}>+</Text>
+    </View>
+);
+
+const CookieIcon = ({ focused }) => (
+    <View style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: focused === true ? '#fef3c7' : 'transparent' }}>
+        <Text style={{ fontSize: 20, color: focused === true ? '#f59e0b' : '#9ca3af' }}>🍪</Text>
     </View>
 );
 
 const StatsIcon = ({ focused }) => (
-    <View className={`w-8 h-8 items-center justify-center rounded-lg ${focused ? 'bg-blue-100' : ''}`}>
-        <Text className={`text-xl ${focused ? 'text-blue-500' : 'text-gray-400'}`}>📊</Text>
+    <View style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: focused === true ? '#dbeafe' : 'transparent' }}>
+        <Text style={{ fontSize: 20, color: focused === true ? '#3b82f6' : '#9ca3af' }}>📊</Text>
     </View>
 );
 
@@ -60,6 +67,14 @@ export default function AppNavigator() {
                     options={{
                         tabBarIcon: ({ focused }) => <AddIcon focused={focused} />,
                         tabBarLabel: 'Add Task',
+                    }}
+                />
+                <Tab.Screen
+                    name="CookieJar"
+                    component={CookieJarScreen}
+                    options={{
+                        tabBarIcon: ({ focused }) => <CookieIcon focused={focused} />,
+                        tabBarLabel: 'Cookie Jar',
                     }}
                 />
                 <Tab.Screen

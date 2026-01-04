@@ -81,13 +81,21 @@ app.get('/tasks', async (req, res) => {
 // Create a new task
 app.post('/tasks', async (req, res) => {
     try {
-        const { title, importance, assigned_date } = req.body;
+        const { title, importance, assigned_date, is_daily = false, is_cookie_jar = false, task_type = 'standard' } = req.body;
         const date = assigned_date || new Date().toISOString().split('T')[0];
 
         const result = await pool.query(
-            'INSERT INTO tasks (title, importance, assigned_date) VALUES ($1, $2, $3) RETURNING *',
-            [title, importance, date]
+            'INSERT INTO tasks (title, importance, assigned_date, is_daily, is_cookie_jar, task_type) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+            [title, importance, date, is_daily, is_cookie_jar, task_type]
         );
+
+        // If it's a cookie jar task, create a streak for it
+        if (is_cookie_jar) {
+            await pool.query(
+                'INSERT INTO streaks (task_title, streak_type, current_streak, last_completed_date) VALUES ($1, $2, 0, NULL) ON CONFLICT DO NOTHING',
+                [title, 'avoidance']
+            );
+        }
 
         res.status(201).json(result.rows[0]);
     } catch (error) {
@@ -254,6 +262,156 @@ app.get('/stats/rating/history', async (req, res) => {
     } catch (error) {
         console.error('Error fetching rating history:', error);
         res.status(500).json({ error: 'Failed to fetch rating history' });
+    }
+});
+
+// ========== COOKIE JAR / STREAK ENDPOINTS ==========
+
+// Get all active streaks
+app.get('/streaks', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM streaks WHERE is_active = true ORDER BY current_streak DESC'
+        );
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching streaks:', error);
+        res.status(500).json({ error: 'Failed to fetch streaks' });
+    }
+});
+
+// Create or update a streak (daily check-in for avoidance tasks)
+app.post('/streaks/check-in', async (req, res) => {
+    try {
+        const { task_title, streak_type = 'avoidance' } = req.body;
+        const today = new Date().toISOString().split('T')[0];
+
+        // Check if streak exists
+        const existing = await pool.query(
+            'SELECT * FROM streaks WHERE task_title = $1 AND is_active = true',
+            [task_title]
+        );
+
+        if (existing.rows.length > 0) {
+            const streak = existing.rows[0];
+            const lastDate = streak.last_completed_date;
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            let newStreak = streak.current_streak;
+
+            // If last check-in was yesterday, continue streak
+            if (lastDate === yesterdayStr) {
+                newStreak = streak.current_streak + 1;
+            } else if (lastDate !== today) {
+                // If not yesterday and not today, reset streak
+                newStreak = 1;
+            }
+            // If last check-in was today, keep same streak
+
+            const longestStreak = Math.max(newStreak, streak.longest_streak);
+
+            await pool.query(
+                'UPDATE streaks SET current_streak = $1, longest_streak = $2, last_completed_date = $3 WHERE id = $4',
+                [newStreak, longestStreak, today, streak.id]
+            );
+
+            // Add to cookie jar on milestone days (3, 7, 14, 30, etc.)
+            const milestones = [3, 7, 14, 21, 30, 60, 90, 180, 365];
+            if (milestones.includes(newStreak)) {
+                await pool.query(
+                    'INSERT INTO cookie_jar (title, description, streak_days, streak_id, earned_date) VALUES ($1, $2, $3, $4, $5)',
+                    [
+                        `${task_title} - ${newStreak} Day Streak! 🔥`,
+                        `You maintained "${task_title}" for ${newStreak} consecutive days!`,
+                        newStreak,
+                        streak.id,
+                        today
+                    ]
+                );
+            }
+
+            res.json({ ...streak, current_streak: newStreak, longest_streak: longestStreak });
+        } else {
+            // Create new streak
+            const result = await pool.query(
+                'INSERT INTO streaks (task_title, streak_type, current_streak, last_completed_date) VALUES ($1, $2, 1, $3) RETURNING *',
+                [task_title, streak_type, today]
+            );
+            res.status(201).json(result.rows[0]);
+        }
+    } catch (error) {
+        console.error('Error checking in streak:', error);
+        res.status(500).json({ error: 'Failed to check in streak' });
+    }
+});
+
+// Get Cookie Jar achievements (consolidated streaks)
+app.get('/cookie-jar', async (req, res) => {
+    try {
+        // Get achievements from cookie_jar table
+        const achievements = await pool.query(
+            'SELECT * FROM cookie_jar ORDER BY earned_date DESC, streak_days DESC'
+        );
+
+        // Get current active streaks for display
+        const activeStreaks = await pool.query(
+            'SELECT * FROM streaks WHERE is_active = true AND current_streak > 0 ORDER BY current_streak DESC'
+        );
+
+        // Consolidate: show only the highest streak for each task
+        const consolidatedStreaks = {};
+        for (const streak of activeStreaks.rows) {
+            if (!consolidatedStreaks[streak.task_title] ||
+                streak.current_streak > consolidatedStreaks[streak.task_title].current_streak) {
+                consolidatedStreaks[streak.task_title] = streak;
+            }
+        }
+
+        res.json({
+            achievements: achievements.rows,
+            activeStreaks: Object.values(consolidatedStreaks),
+            totalCookies: achievements.rows.length
+        });
+    } catch (error) {
+        console.error('Error fetching cookie jar:', error);
+        res.status(500).json({ error: 'Failed to fetch cookie jar' });
+    }
+});
+
+// Break a streak (when user fails)
+app.post('/streaks/:id/break', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        await pool.query(
+            'UPDATE streaks SET current_streak = 0, is_active = false WHERE id = $1',
+            [id]
+        );
+
+        res.json({ message: 'Streak broken. Stay strong, start again!' });
+    } catch (error) {
+        console.error('Error breaking streak:', error);
+        res.status(500).json({ error: 'Failed to break streak' });
+    }
+});
+
+// Add manual cookie to jar (for past achievements)
+app.post('/cookie-jar', async (req, res) => {
+    try {
+        const { title, description, icon = '🍪' } = req.body;
+        const today = new Date().toISOString().split('T')[0];
+
+        const result = await pool.query(
+            'INSERT INTO cookie_jar (title, description, icon, earned_date) VALUES ($1, $2, $3, $4) RETURNING *',
+            [title, description, icon, today]
+        );
+
+        res.status(201).json(result.rows[0]);
+    } catch (error) {
+        console.error('Error adding to cookie jar:', error);
+        res.status(500).json({ error: 'Failed to add to cookie jar' });
     }
 });
 

@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000';
+const API_URL = 'https://achiever-production-e895.up.railway.app';
 
 // Task API functions
 export const fetchTasks = async (date) => {
@@ -8,12 +8,21 @@ export const fetchTasks = async (date) => {
     return data;
 };
 
-export const createTask = async (title, importance, assignedDate) => {
+export const createTask = async (title, importance, assignedDate, options = {}) => {
     const date = assignedDate || new Date().toISOString().split('T')[0];
+    const { is_daily = false, is_cookie_jar = false, task_type = 'standard' } = options;
+
     const response = await fetch(`${API_URL}/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, importance, assigned_date: date }),
+        body: JSON.stringify({
+            title,
+            importance,
+            assigned_date: date,
+            is_daily,
+            is_cookie_jar,
+            task_type
+        }),
     });
     const newTask = await response.json();
     return newTask;
@@ -53,3 +62,46 @@ export const getRatingHistory = async (days = 30) => {
     const data = await response.json();
     return data;
 };
+
+// ========== COOKIE JAR / STREAK API ==========
+
+export const getStreaks = async () => {
+    const response = await fetch(`${API_URL}/streaks`);
+    const data = await response.json();
+    return data;
+};
+
+export const checkInStreak = async (taskTitle, streakType = 'avoidance') => {
+    const response = await fetch(`${API_URL}/streaks/check-in`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task_title: taskTitle, streak_type: streakType }),
+    });
+    const data = await response.json();
+    return data;
+};
+
+export const getCookieJar = async () => {
+    const response = await fetch(`${API_URL}/cookie-jar`);
+    const data = await response.json();
+    return data;
+};
+
+export const breakStreak = async (streakId) => {
+    const response = await fetch(`${API_URL}/streaks/${streakId}/break`, {
+        method: 'POST',
+    });
+    const data = await response.json();
+    return data;
+};
+
+export const addToCookieJar = async (title, description, icon = '🍪') => {
+    const response = await fetch(`${API_URL}/cookie-jar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, description, icon }),
+    });
+    const data = await response.json();
+    return data;
+};
+

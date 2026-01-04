@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, FlatList, RefreshControl, ScrollView } from 'react-native';
 import TaskCard from '../components/TaskCard';
-import { fetchTasks, toggleTaskCompletion, getDailyScore } from '../services/api';
+import { fetchTasks, toggleTaskCompletion, getDailyScore, deleteTask } from '../services/api';
 
 export default function HomeScreen({ navigation }) {
     const [tasks, setTasks] = useState([]);
@@ -50,6 +50,15 @@ export default function HomeScreen({ navigation }) {
             loadData(); // Reload to update score
         } catch (error) {
             console.error('Error toggling task:', error);
+        }
+    };
+
+    const handleDeleteTask = async (taskId) => {
+        try {
+            await deleteTask(taskId);
+            loadData(); // Reload to update list
+        } catch (error) {
+            console.error('Error deleting task:', error);
         }
     };
 
@@ -106,6 +115,7 @@ export default function HomeScreen({ navigation }) {
                                 key={task.id}
                                 task={task}
                                 onToggle={() => handleToggleTask(task.id)}
+                                onDelete={() => handleDeleteTask(task.id)}
                             />
                         ))
                     )}

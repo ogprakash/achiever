@@ -66,6 +66,27 @@ export default function StatsScreen() {
         return 'text-gray-500';
     };
 
+    // Goggins quotes from "Can't Hurt Me"
+    const gogginsQuotes = [
+        "\"You are in danger of living a life so comfortable and soft, that you will die without ever realizing your potential.\"",
+        "\"The only way to grow is to make yourself uncomfortable.\"",
+        "\"When you think you're done, you're only at 40% of your body's capability.\"",
+        "\"We live in a world where mediocrity is often rewarded.\"",
+        "\"Most of us aren't defeated in one decisive battle. We are defeated one tiny, seemingly insignificant surrender at a time.\"",
+        "\"You have to build calluses on your brain just like you build calluses on your hands.\"",
+        "\"The most important conversations you'll ever have are the ones you'll have with yourself.\"",
+        "\"Don't stop when you're tired. Stop when you're done.\"",
+        "\"Suffering is a test. That's all it is.\"",
+        "\"It won't always go your way, so you can't get trapped in this idea of perfection.\"",
+    ];
+
+    const getGogginsQuote = () => {
+        // Use today's date to pick a consistent daily quote
+        const today = new Date();
+        const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
+        return gogginsQuotes[dayOfYear % gogginsQuotes.length];
+    };
+
     // Prepare simple chart data
     const chartData = {
         labels: [],
@@ -77,7 +98,7 @@ export default function StatsScreen() {
     return (
         <ScrollView className="flex-1 bg-gray-50">
             {/* Header */}
-            <View className="bg-gradient-to-r from-cyan-500 to-blue-500 px-6 pt-12 pb-8">
+            <View style={{ backgroundColor: '#06b6d4' }} className="px-6 pt-12 pb-8">
                 <Text className="text-white text-sm font-semibold mb-2">Performance Dashboard</Text>
                 <Text className="text-white text-3xl font-bold">Prakash Bhardwaj</Text>
             </View>
@@ -199,12 +220,12 @@ export default function StatsScreen() {
                     Rating History (Last {ratingHistory.length} Days)
                 </Text>
                 <View className="bg-white rounded-2xl p-4 shadow-sm">
-                    {ratingHistory.length >= 2 ? (
+                    {ratingHistory.length >= 1 ? (
                         <LineChart
                             data={chartData}
                             width={screenWidth - 64}
                             height={220}
-                            withDots={false}
+                            withDots={ratingHistory.length < 5}
                             withInnerLines={false}
                             withOuterLines={true}
                             withVerticalLines={false}
@@ -234,7 +255,7 @@ export default function StatsScreen() {
                         />
                     ) : (
                         <Text className="text-gray-400 text-center py-8">
-                            Complete tasks for a few days to see your rating trend
+                            Complete your first day's tasks to see your rating!
                         </Text>
                     )}
                 </View>
@@ -276,7 +297,7 @@ export default function StatsScreen() {
                                 <Text className="text-2xl">📈</Text>
                             </View>
                             <View>
-                                <Text className="text-2xl font-bold text-gray-900">10</Text>
+                                <Text className="text-2xl font-bold text-gray-900">4</Text>
                                 <Text className="text-gray-600 text-xs">Highest Importance</Text>
                                 <Text className="text-gray-500 text-xs">Task Completed</Text>
                             </View>
@@ -285,13 +306,13 @@ export default function StatsScreen() {
                 </View>
             </View>
 
-            {/* Motivational Quote */}
+            {/* Goggins Motivational Quote */}
             <View className="px-6 pb-8">
-                <View className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl p-6">
+                <View style={{ backgroundColor: '#1f2937' }} className="rounded-2xl p-6">
                     <Text className="text-white text-lg font-bold mb-2">
-                        "Discipline is the bridge between goals and accomplishment."
+                        {getGogginsQuote()}
                     </Text>
-                    <Text className="text-purple-100 text-sm">- Jim Rohn</Text>
+                    <Text style={{ color: '#9ca3af' }} className="text-sm">- David Goggins, Can't Hurt Me</Text>
                 </View>
             </View>
         </ScrollView>

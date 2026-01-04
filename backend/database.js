@@ -31,8 +31,27 @@ const initDatabase = async () => {
         completed BOOLEAN DEFAULT FALSE,
         assigned_date DATE NOT NULL DEFAULT CURRENT_DATE,
         completed_at TIMESTAMP,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        is_daily BOOLEAN DEFAULT FALSE,
+        is_cookie_jar BOOLEAN DEFAULT FALSE,
+        task_type VARCHAR(20) DEFAULT 'standard'
       );
+    `);
+
+    // Add new columns if they don't exist (for existing databases)
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tasks' AND column_name = 'is_daily') THEN
+          ALTER TABLE tasks ADD COLUMN is_daily BOOLEAN DEFAULT FALSE;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tasks' AND column_name = 'is_cookie_jar') THEN
+          ALTER TABLE tasks ADD COLUMN is_cookie_jar BOOLEAN DEFAULT FALSE;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tasks' AND column_name = 'task_type') THEN
+          ALTER TABLE tasks ADD COLUMN task_type VARCHAR(20) DEFAULT 'standard';
+        END IF;
+      END $$;
     `);
 
     // Create daily_scores table
@@ -54,6 +73,34 @@ const initDatabase = async () => {
         date DATE NOT NULL,
         rating INTEGER NOT NULL,
         daily_score NUMERIC(5,2),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Create streaks table for Cookie Jar tracking
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS streaks (
+        id SERIAL PRIMARY KEY,
+        task_title VARCHAR(255) NOT NULL,
+        streak_type VARCHAR(50) DEFAULT 'avoidance',
+        current_streak INTEGER DEFAULT 0,
+        longest_streak INTEGER DEFAULT 0,
+        last_completed_date DATE,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Create cookie_jar table for achievements
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS cookie_jar (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        streak_days INTEGER DEFAULT 0,
+        streak_id INTEGER REFERENCES streaks(id) ON DELETE SET NULL,
+        earned_date DATE NOT NULL DEFAULT CURRENT_DATE,
+        icon VARCHAR(10) DEFAULT '🍪',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
