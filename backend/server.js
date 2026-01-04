@@ -19,7 +19,7 @@ app.get('/', (req, res) => {
 // ========== RATING ALGORITHM ==========
 
 // Rating constants
-const STARTING_RATING = 1200;
+const STARTING_RATING = 1500;
 const MIN_RATING = 800;
 const MAX_RATING = 4000;
 const K_FACTOR = 32; // How volatile rating changes are
@@ -232,7 +232,8 @@ app.get('/stats/daily/:date', async (req, res) => {
             // Rating info
             previousRating: currentRating,
             currentRating: newRating,
-            ratingChange: ratingChange
+            ratingChange: ratingChange,
+            expectedScore: Math.round(getExpectedScore(currentRating) * 100) / 100
         });
     } catch (error) {
         console.error('Error calculating daily score:', error);
@@ -271,6 +272,17 @@ app.get('/stats/rating/history', async (req, res) => {
     } catch (error) {
         console.error('Error fetching rating history:', error);
         res.status(500).json({ error: 'Failed to fetch rating history' });
+    }
+});
+
+// Reset rating history (start fresh)
+app.post('/stats/rating/reset', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM rating_history');
+        res.json({ message: 'Rating history reset. Starting fresh at ' + STARTING_RATING, startingRating: STARTING_RATING });
+    } catch (error) {
+        console.error('Error resetting rating:', error);
+        res.status(500).json({ error: 'Failed to reset rating' });
     }
 });
 

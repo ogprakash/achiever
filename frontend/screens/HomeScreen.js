@@ -101,14 +101,31 @@ export default function HomeScreen({ navigation }) {
                 {/* Today's Score Card */}
                 <View className="px-6 pt-4">
                     <View className="bg-cyan-500 rounded-2xl p-6 shadow-lg">
-                        <Text className="text-white text-sm font-semibold mb-2">Today's Score:</Text>
-                        <Text className="text-white text-5xl font-bold">
-                            {dailyScore ? Math.round(dailyScore.percentageScore) : 0} / 100
-                        </Text>
+                        <View className="flex-row justify-between items-start">
+                            <View>
+                                <Text className="text-white text-sm font-semibold mb-2">Today's Score:</Text>
+                                <Text className="text-white text-5xl font-bold">
+                                    {dailyScore ? Math.round(dailyScore.percentageScore) : 0}%
+                                </Text>
+                            </View>
+                            <View className="bg-white/20 rounded-xl px-4 py-2">
+                                <Text className="text-white text-xs font-semibold">Expected</Text>
+                                <Text className="text-white text-2xl font-bold">
+                                    {dailyScore?.expectedScore ? Math.round(dailyScore.expectedScore) : 65}%
+                                </Text>
+                            </View>
+                        </View>
                         {dailyScore && (
-                            <Text className="text-cyan-100 text-sm mt-2">
-                                {dailyScore.tasksCompleted} of {dailyScore.totalTasks} tasks completed
-                            </Text>
+                            <View className="mt-3">
+                                <Text className="text-cyan-100 text-sm">
+                                    {dailyScore.tasksCompleted} of {dailyScore.totalTasks} tasks completed
+                                </Text>
+                                <Text className="text-cyan-100 text-xs mt-1">
+                                    {dailyScore.percentageScore >= (dailyScore.expectedScore || 65)
+                                        ? '📈 Above expected! Rating will increase'
+                                        : '📉 Below expected. Complete more tasks!'}
+                                </Text>
+                            </View>
                         )}
                     </View>
                 </View>

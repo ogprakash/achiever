@@ -18,8 +18,8 @@ const HomeIcon = ({ focused }) => (
 );
 
 const AddIcon = ({ focused }) => (
-    <View style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 24, backgroundColor: focused === true ? '#3b82f6' : '#374151' }}>
-        <Text style={{ fontSize: 24, color: '#ffffff' }}>+</Text>
+    <View style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: focused === true ? '#06b6d4' : 'transparent' }}>
+        <Text style={{ fontSize: 20, color: focused === true ? '#ffffff' : '#9ca3af' }}>+</Text>
     </View>
 );
 
