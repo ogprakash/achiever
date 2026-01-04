@@ -403,23 +403,28 @@ app.get('/stats/daily/:date', async (req, res) => {
        DO UPDATE SET 
          total_possible_points = $2,
          earned_points = $3,
-         percentage_score = $4`,
+        percentage_score = $4`,
             [date, totalPossiblePoints, earnedPoints, percentageScore]
         );
 
         // ========== RATING CALCULATION ==========
-        // Get previous rating - from user table if userId provided, otherwise from rating_history
+        // Get previous rating - ALWAYS from history BEFORE today to ensure idempotency
+        // This prevents the "infinite rating growth" bug where refreshing the page keeps adding points
         let previousRating = STARTING_RATING;
 
         if (userId) {
-            const userRating = await pool.query(
-                'SELECT current_rating FROM users WHERE id = $1',
-                [userId]
+            // Find the most recent rating from BEFORE today
+            const prevRatingResult = await pool.query(
+                'SELECT rating FROM rating_history WHERE user_id = $1 AND date < $2 ORDER BY date DESC LIMIT 1',
+                [userId, date]
             );
-            if (userRating.rows.length > 0) {
-                previousRating = userRating.rows[0].current_rating || STARTING_RATING;
+
+            if (prevRatingResult.rows.length > 0) {
+                previousRating = prevRatingResult.rows[0].rating;
             }
+            // If no history exists, previousRating remains STARTING_RATING (1500)
         } else {
+            // Legacy/fallback for no userId (shouldn't really happen ideally)
             const prevRatingResult = await pool.query(
                 'SELECT rating FROM rating_history WHERE date < $1 ORDER BY date DESC LIMIT 1',
                 [date]
@@ -433,36 +438,52 @@ app.get('/stats/daily/:date', async (req, res) => {
         let ratingChange = 0;
 
         if (totalPossiblePoints > 0) {
-            // Calculate rating change based on performance vs PREVIOUS rating
+            // Calculate rating change based on performance vs CONSTANT previous rating
             ratingChange = calculateRatingChange(previousRating, percentageScore);
             newRating = Math.max(MIN_RATING, Math.min(MAX_RATING, previousRating + ratingChange));
 
-            // Update user's current_rating in users table (THIS IS THE KEY FIX!)
+            // Update user's current_rating in users table
             if (userId) {
                 await pool.query(
                     'UPDATE users SET current_rating = $1 WHERE id = $2',
                     [newRating, userId]
                 );
-            }
 
-            // Check if we already have a rating entry for today
-            const existingRating = await pool.query(
-                'SELECT id FROM rating_history WHERE date = $1',
-                [date]
-            );
-
-            if (existingRating.rows.length > 0) {
-                // Update existing rating for today
-                await pool.query(
-                    'UPDATE rating_history SET rating = $1, daily_score = $2 WHERE date = $3',
-                    [newRating, percentageScore, date]
+                // Check and update/insert rating history for TODAY
+                const existingRating = await pool.query(
+                    'SELECT id FROM rating_history WHERE user_id = $1 AND date = $2',
+                    [userId, date]
                 );
+
+                if (existingRating.rows.length > 0) {
+                    await pool.query(
+                        'UPDATE rating_history SET rating = $1, daily_score = $2 WHERE user_id = $3 AND date = $4',
+                        [newRating, percentageScore, userId, date]
+                    );
+                } else {
+                    await pool.query(
+                        'INSERT INTO rating_history (user_id, date, rating, daily_score) VALUES ($1, $2, $3, $4)',
+                        [userId, date, newRating, percentageScore]
+                    );
+                }
             } else {
-                // Insert new rating entry
-                await pool.query(
-                    'INSERT INTO rating_history (date, rating, daily_score) VALUES ($1, $2, $3)',
-                    [date, newRating, percentageScore]
+                // Fallback - update global history (legacy behavior)
+                const existingRating = await pool.query(
+                    'SELECT id FROM rating_history WHERE date = $1',
+                    [date]
                 );
+
+                if (existingRating.rows.length > 0) {
+                    await pool.query(
+                        'UPDATE rating_history SET rating = $1, daily_score = $2 WHERE date = $3',
+                        [newRating, percentageScore, date]
+                    );
+                } else {
+                    await pool.query(
+                        'INSERT INTO rating_history (date, rating, daily_score) VALUES ($1, $2, $3)',
+                        [date, newRating, percentageScore]
+                    );
+                }
             }
         }
 
