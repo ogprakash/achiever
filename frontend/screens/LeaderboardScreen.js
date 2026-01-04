@@ -1,8 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, FlatList, Image, RefreshControl } from 'react-native';
 import { getLeaderboard } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function LeaderboardScreen() {
+    const { user } = useAuth();
     const [leaderboard, setLeaderboard] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -10,8 +12,8 @@ export default function LeaderboardScreen() {
 
     const loadLeaderboard = async () => {
         try {
-            // TODO: Pass actual userId when auth is implemented
-            const data = await getLeaderboard();
+            // Pass actual userId from auth context
+            const data = await getLeaderboard(user?.id);
             setLeaderboard(data.leaderboard || []);
             setCurrentUser(data.currentUser);
         } catch (error) {
@@ -119,16 +121,14 @@ export default function LeaderboardScreen() {
         );
     }
 
-    // Mock current user for demo (until auth is implemented)
-    const mockCurrentUser = {
-        id: 999,
-        name: 'You',
-        avatarUrl: 'https://i.pravatar.cc/150?u=prakash',
-        currentRating: 1500,
-        rank: 11 // Will be dynamically calculated when auth is ready
+    // Use actual user from auth, with fallback for display
+    const displayUser = currentUser || {
+        id: user?.id || 999,
+        name: user?.name || 'You',
+        avatarUrl: user?.avatarUrl || 'https://i.pravatar.cc/150?u=prakash',
+        currentRating: user?.currentRating || 1500,
+        rank: currentUser?.rank || 11 // API returns rank when userId is passed
     };
-
-    const displayUser = currentUser || mockCurrentUser;
 
     return (
         <View style={{ flex: 1, backgroundColor: '#F3F4F6' }}>
