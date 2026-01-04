@@ -121,19 +121,32 @@ export default function LeaderboardScreen() {
         );
     }
 
-    // Use actual user from auth, with fallback for display
+    // Check if user exists in database - if currentUser is null but we have user.id, 
+    // it means user was deleted (DB reset) and needs to re-login
+    const userNeedsReLogin = user?.id && !currentUser;
+
+    // Use API data (currentUser) as primary source, fall back to cached user data only for display
     const displayUser = currentUser || {
-        id: user?.id || 999,
-        name: user?.name || 'You',
-        avatarUrl: user?.avatarUrl || 'https://i.pravatar.cc/150?u=prakash',
-        currentRating: user?.currentRating || 1500,
-        rank: currentUser?.rank || 11 // API returns rank when userId is passed
+        id: user?.id || 0,
+        name: user?.name || 'Unknown User',
+        avatarUrl: user?.avatarUrl || 'https://i.pravatar.cc/150?u=default',
+        currentRating: currentUser?.currentRating || user?.currentRating || 1500,
+        rank: currentUser?.rank || '?'
     };
 
     return (
         <View style={{ flex: 1, backgroundColor: '#F3F4F6' }}>
+            {/* Re-login Warning Banner */}
+            {userNeedsReLogin && (
+                <View style={{ backgroundColor: '#FEF3C7', padding: 12, borderBottomWidth: 1, borderBottomColor: '#F59E0B' }}>
+                    <Text style={{ color: '#92400E', fontWeight: '600', textAlign: 'center' }}>
+                        ⚠️ Please logout and signup again to sync your data
+                    </Text>
+                </View>
+            )}
+
             {/* Header with User Rank */}
-            <View style={{ backgroundColor: '#06b6d4', paddingTop: 48, paddingBottom: 16, paddingHorizontal: 16 }}>
+            <View style={{ backgroundColor: '#06b6d4', paddingTop: userNeedsReLogin ? 16 : 48, paddingBottom: 16, paddingHorizontal: 16 }}>
                 <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#FFFFFF', textAlign: 'center' }}>
                     🏆 Leaderboard
                 </Text>
