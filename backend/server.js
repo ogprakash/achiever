@@ -67,7 +67,7 @@ app.get('/tasks', async (req, res) => {
         const targetDate = date || new Date().toISOString().split('T')[0];
 
         const result = await pool.query(
-            'SELECT * FROM tasks WHERE assigned_date = $1 ORDER BY importance DESC, created_at ASC',
+            'SELECT * FROM tasks WHERE assigned_date = $1 ORDER BY importance ASC, created_at ASC',
             [targetDate]
         );
 

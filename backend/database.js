@@ -27,7 +27,7 @@ const initDatabase = async () => {
       CREATE TABLE IF NOT EXISTS tasks (
         id SERIAL PRIMARY KEY,
         title VARCHAR(255) NOT NULL,
-        importance INTEGER CHECK (importance >= 1 AND importance <= 4),
+        importance INTEGER CHECK (importance >= 0 AND importance <= 4),
         completed BOOLEAN DEFAULT FALSE,
         assigned_date DATE NOT NULL DEFAULT CURRENT_DATE,
         completed_at TIMESTAMP,

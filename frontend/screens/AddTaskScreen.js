@@ -5,7 +5,7 @@ import { createTask } from '../services/api';
 
 export default function AddTaskScreen({ navigation }) {
     const [taskName, setTaskName] = useState('');
-    const [importance, setImportance] = useState(2);
+    const [importance, setImportance] = useState(0);
     const [selectedDate, setSelectedDate] = useState('Today');
     const [isDaily, setIsDaily] = useState(false);
     const [isCookieJar, setIsCookieJar] = useState(false);
@@ -36,7 +36,7 @@ export default function AddTaskScreen({ navigation }) {
 
             Alert.alert('Success', successMessage);
             setTaskName('');
-            setImportance(2);
+            setImportance(0);
             setIsDaily(false);
             setIsCookieJar(false);
 
@@ -73,12 +73,12 @@ export default function AddTaskScreen({ navigation }) {
                     <View className="flex-row justify-between items-center mb-4">
                         <Text className="text-sm font-semibold text-gray-700">Priority</Text>
                         <View className="bg-cyan-500 px-4 py-2 rounded-full">
-                            <Text className="text-white font-bold text-lg">Priority {importance}</Text>
+                            <Text className="text-white font-bold text-lg">P{importance}</Text>
                         </View>
                     </View>
 
                     <Slider
-                        minimumValue={1}
+                        minimumValue={0}
                         maximumValue={4}
                         step={1}
                         value={importance}
@@ -88,8 +88,8 @@ export default function AddTaskScreen({ navigation }) {
                     />
 
                     <View className="flex-row justify-between mt-2">
-                        <Text className="text-xs text-gray-500">Priority 1</Text>
-                        <Text className="text-xs text-gray-500">Priority 4</Text>
+                        <Text className="text-xs text-gray-500">P0 (Highest)</Text>
+                        <Text className="text-xs text-gray-500">P4 (Lowest)</Text>
                     </View>
                 </View>
 
