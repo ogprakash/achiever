@@ -1,42 +1,28 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, Alert, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, Image } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 
 export default function UserProfileHeader() {
     const { user, signOut } = useAuth();
     const [showMenu, setShowMenu] = useState(false);
 
-    const handleLogout = () => {
-        Alert.alert(
-            'Logout',
-            'Are you sure you want to logout?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Logout',
-                    style: 'destructive',
-                    onPress: async () => {
-                        setShowMenu(false);
-                        await signOut();
-                    }
-                }
-            ]
-        );
+    const handleLogout = async () => {
+        setShowMenu(false);
+        await signOut();
     };
 
     if (!user) return null;
 
     return (
-        <View style={{ position: 'absolute', top: 48, right: 16, zIndex: 100 }}>
-            {/* Profile Button */}
+        <View>
+            {/* Profile Button - Just Icon */}
             <TouchableOpacity
                 onPress={() => setShowMenu(true)}
                 style={{
-                    flexDirection: 'row',
                     alignItems: 'center',
+                    justifyContent: 'center',
                     backgroundColor: 'rgba(255,255,255,0.95)',
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
+                    padding: 4,
                     borderRadius: 20,
                     borderWidth: 1,
                     borderColor: '#E5E7EB',
@@ -50,17 +36,12 @@ export default function UserProfileHeader() {
                 <Image
                     source={{ uri: user.avatarUrl || 'https://i.pravatar.cc/150?u=' + user.email }}
                     style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 14,
-                        backgroundColor: '#E5E7EB',
-                        marginRight: 8
+                        width: 36,
+                        height: 36,
+                        borderRadius: 18,
+                        backgroundColor: '#E5E7EB'
                     }}
                 />
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', maxWidth: 100 }} numberOfLines={1}>
-                    {user.name?.split(' ')[0] || 'User'}
-                </Text>
-                <Text style={{ marginLeft: 4, color: '#9CA3AF' }}>▼</Text>
             </TouchableOpacity>
 
             {/* Dropdown Menu Modal */}

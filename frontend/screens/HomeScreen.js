@@ -89,17 +89,17 @@ export default function HomeScreen({ navigation }) {
 
     return (
         <View className="flex-1 bg-gray-50">
-            {/* User Profile Header - Top Right */}
-            <UserProfileHeader />
-
             <ScrollView
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
                 }
             >
-                {/* Header with Greeting */}
+                {/* Header with Greeting + Profile Icon */}
                 <View className="bg-white px-6 pt-12 pb-6">
-                    <Text className="text-2xl font-bold text-gray-900">{getGreeting()}! 👋</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text className="text-2xl font-bold text-gray-900">{getGreeting()}! 👋</Text>
+                        <UserProfileHeader />
+                    </View>
                 </View>
 
                 {/* Today's Score Card */}
