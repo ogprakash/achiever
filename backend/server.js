@@ -18,7 +18,86 @@ app.get('/', (req, res) => {
 
 // ========== AUTHENTICATION ENDPOINTS ==========
 
-// Google Sign-In (create or return user)
+// Sign Up (create new user with password)
+app.post('/auth/signup', async (req, res) => {
+    try {
+        const { email, name, password } = req.body;
+
+        if (!email || !name || !password) {
+            return res.status(400).json({ error: 'Email, name, and password are required' });
+        }
+
+        if (password.length < 4) {
+            return res.status(400).json({ error: 'Password must be at least 4 characters' });
+        }
+
+        // Check if user already exists
+        const existing = await pool.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase()]);
+        if (existing.rows.length > 0) {
+            return res.status(400).json({ error: 'Email already registered. Please sign in.' });
+        }
+
+        // Create new user
+        const result = await pool.query(
+            `INSERT INTO users (email, name, password, current_rating)
+             VALUES ($1, $2, $3, 1500)
+             RETURNING *`,
+            [email.toLowerCase(), name, password]
+        );
+
+        const user = result.rows[0];
+        res.json({
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            avatarUrl: user.avatar_url,
+            currentRating: user.current_rating,
+            createdAt: user.created_at
+        });
+    } catch (error) {
+        console.error('Error in signup:', error);
+        res.status(500).json({ error: 'Signup failed' });
+    }
+});
+
+// Sign In (validate email + password)
+app.post('/auth/signin', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password are required' });
+        }
+
+        // Find user
+        const result = await pool.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase()]);
+
+        if (result.rows.length === 0) {
+            return res.status(401).json({ error: 'User not found. Please sign up first.' });
+        }
+
+        const user = result.rows[0];
+
+        // Check password
+        if (user.password !== password) {
+            return res.status(401).json({ error: 'Incorrect password' });
+        }
+
+        res.json({
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            avatarUrl: user.avatar_url,
+            currentRating: user.current_rating,
+            createdAt: user.created_at
+        });
+    } catch (error) {
+        console.error('Error in signin:', error);
+        res.status(500).json({ error: 'Sign in failed' });
+    }
+});
+
+// Keep legacy endpoint for compatibility (creates user without password)
 app.post('/auth/google', async (req, res) => {
     try {
         const { email, name, googleId, avatarUrl } = req.body;
@@ -27,11 +106,9 @@ app.post('/auth/google', async (req, res) => {
             return res.status(400).json({ error: 'Email and name are required' });
         }
 
-        // Check if user exists
         let user = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
 
         if (user.rows.length === 0) {
-            // Create new user
             const result = await pool.query(
                 `INSERT INTO users (email, name, google_id, avatar_url, current_rating)
                  VALUES ($1, $2, $3, $4, 1500)

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, FlatList, RefreshControl, ScrollView } from 'react-native';
 import TaskCard from '../components/TaskCard';
+import UserProfileHeader from '../components/UserProfileHeader';
 import { fetchTasks, toggleTaskCompletion, getDailyScore, deleteTask } from '../services/api';
 
 export default function HomeScreen({ navigation }) {
@@ -88,6 +89,9 @@ export default function HomeScreen({ navigation }) {
 
     return (
         <View className="flex-1 bg-gray-50">
+            {/* User Profile Header - Top Right */}
+            <UserProfileHeader />
+
             <ScrollView
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />

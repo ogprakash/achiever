@@ -28,11 +28,22 @@ const initDatabase = async () => {
         id SERIAL PRIMARY KEY,
         google_id VARCHAR(255) UNIQUE,
         email VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255),
         name VARCHAR(255) NOT NULL,
         avatar_url TEXT,
         current_rating INTEGER DEFAULT 1500,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+
+    // Add password column if missing (migration for existing DBs)
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'password') THEN
+          ALTER TABLE users ADD COLUMN password VARCHAR(255);
+        END IF;
+      END $$;
     `);
 
     // Create tasks table

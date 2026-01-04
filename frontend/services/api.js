@@ -107,6 +107,32 @@ export const addToCookieJar = async (title, description, icon = '🍪') => {
 
 // ========== AUTH & USER API ==========
 
+export const signup = async (email, name, password) => {
+    const response = await fetch(`${API_URL}/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name, password }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.error || 'Signup failed');
+    }
+    return data;
+};
+
+export const signin = async (email, password) => {
+    const response = await fetch(`${API_URL}/auth/signin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.error || 'Sign in failed');
+    }
+    return data;
+};
+
 export const googleSignIn = async (email, name, googleId = null, avatarUrl = null) => {
     const response = await fetch(`${API_URL}/auth/google`, {
         method: 'POST',
