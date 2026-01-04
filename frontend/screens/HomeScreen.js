@@ -11,19 +11,22 @@ export default function HomeScreen({ navigation }) {
     const [dailyScore, setDailyScore] = useState(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [error, setError] = useState(null);
 
     const loadData = async () => {
         try {
+            setError(null);
             const today = new Date().toISOString().split('T')[0];
             const [tasksData, scoreData] = await Promise.all([
                 fetchTasks(today, user?.id),
                 getDailyScore(today)
             ]);
 
-            setTasks(tasksData);
+            setTasks(tasksData || []);
             setDailyScore(scoreData);
-        } catch (error) {
-            console.error('Error loading data:', error);
+        } catch (err) {
+            console.error('Error loading data:', err);
+            setError(err.message || 'Failed to load data. Check your connection.');
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -31,8 +34,10 @@ export default function HomeScreen({ navigation }) {
     };
 
     useEffect(() => {
-        loadData();
-    }, []);
+        if (user?.id) {
+            loadData();
+        }
+    }, [user?.id]);
 
     // Refresh when screen comes into focus
     useEffect(() => {
@@ -103,6 +108,13 @@ export default function HomeScreen({ navigation }) {
                         <UserProfileHeader />
                     </View>
                 </View>
+
+                {/* Error Banner */}
+                {error && (
+                    <View style={{ backgroundColor: '#FEE2E2', padding: 12, marginHorizontal: 16, marginTop: 8, borderRadius: 8, borderWidth: 1, borderColor: '#EF4444' }}>
+                        <Text style={{ color: '#DC2626', fontWeight: '600' }}>⚠️ {error}</Text>
+                    </View>
+                )}
 
                 {/* Today's Score Card */}
                 <View className="px-6 pt-4">
