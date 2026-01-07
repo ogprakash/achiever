@@ -407,16 +407,36 @@ app.patch('/tasks/:id/toggle', async (req, res) => {
 });
 
 // Delete a task
+// If the task is a daily habit, delete ALL instances to prevent resurrection
 app.delete('/tasks/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await pool.query('DELETE FROM tasks WHERE id = $1 RETURNING *', [id]);
 
-        if (result.rows.length === 0) {
+        // First, get the task to check if it's a daily habit
+        const taskResult = await pool.query('SELECT * FROM tasks WHERE id = $1', [id]);
+
+        if (taskResult.rows.length === 0) {
             return res.status(404).json({ error: 'Task not found' });
         }
 
-        res.json({ message: 'Task deleted successfully' });
+        const task = taskResult.rows[0];
+
+        if (task.is_daily) {
+            // It's a daily habit - delete ALL instances with same title for this user
+            const deleteResult = await pool.query(
+                'DELETE FROM tasks WHERE title = $1 AND user_id = $2 RETURNING id',
+                [task.title, task.user_id]
+            );
+            console.log(`🗑️ Deleted ${deleteResult.rowCount} instances of daily habit "${task.title}"`);
+            res.json({
+                message: 'Daily habit deleted permanently',
+                deletedCount: deleteResult.rowCount
+            });
+        } else {
+            // Regular task - just delete this one
+            await pool.query('DELETE FROM tasks WHERE id = $1', [id]);
+            res.json({ message: 'Task deleted successfully' });
+        }
     } catch (error) {
         console.error('Error deleting task:', error);
         res.status(500).json({ error: 'Failed to delete task' });

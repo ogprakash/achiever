@@ -79,7 +79,7 @@ export default function AddTaskScreen({ navigation }) {
                 <View className="mb-6">
                     <View className="flex-row justify-between items-center mb-4">
                         <Text className="text-sm font-semibold text-gray-700">Priority</Text>
-                        <View className="bg-cyan-500 px-4 py-2 rounded-full">
+                        <View className="bg-cyan-600 px-4 py-2 rounded-full">
                             <Text className="text-white font-bold text-lg">P{importance}</Text>
                         </View>
                     </View>
