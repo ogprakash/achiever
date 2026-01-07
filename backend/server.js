@@ -11,6 +11,70 @@ app.use(express.json());
 // Initialize database and seed mock users on startup
 initDatabase().then(() => seedMockUsers()).catch(console.error);
 
+// ========== HELPER FUNCTIONS ==========
+
+/**
+ * Get local date string (YYYY-MM-DD) with 5am day boundary
+ * If before 5am, treats it as the previous day
+ */
+function getLocalDate() {
+    const now = new Date();
+    const DAY_START_HOUR = 5;
+
+    // If before 5am, subtract a day
+    if (now.getHours() < DAY_START_HOUR) {
+        now.setDate(now.getDate() - 1);
+    }
+
+    return now.toISOString().split('T')[0];
+}
+
+/**
+ * Ensure daily habits are created for the target date
+ * Finds all daily habits from the user and creates new tasks for today if they don't exist
+ */
+async function ensureDailyHabitsExist(userId, targetDate) {
+    if (!userId) return;
+
+    try {
+        // Find all daily habit definitions (distinct titles)
+        // We look for the MOST RECENT instance of each task title.
+        // If the most recent instance has is_daily=true, we continue it.
+        // If the most recent instance has is_daily=false, we assume the user stopped it.
+        const dailyHabitsResult = await pool.query(`
+            SELECT DISTINCT ON (title) title, importance, is_daily, is_cookie_jar, task_type, user_id
+            FROM tasks
+            WHERE user_id = $1
+            ORDER BY title, assigned_date DESC, created_at DESC
+        `, [userId]);
+
+        // Filter in JS to only keep the active ones
+        // (Doing it in SQL with DISTINCT ON + WHERE is tricky because WHERE runs before DISTINCT)
+        const dailyHabits = dailyHabitsResult.rows.filter(t => t.is_daily);
+
+        for (const habit of dailyHabits) {
+            // Check if this habit already exists for target date
+            const existingTask = await pool.query(
+                'SELECT id FROM tasks WHERE user_id = $1 AND title = $2 AND assigned_date = $3',
+                [userId, habit.title, targetDate]
+            );
+
+            if (existingTask.rows.length === 0) {
+                // Create the daily habit for today (uncompleted)
+                await pool.query(
+                    `INSERT INTO tasks (title, importance, assigned_date, user_id, is_daily, is_cookie_jar, task_type, completed)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, false)`,
+                    [habit.title, habit.importance, targetDate, userId, true, habit.is_cookie_jar, habit.task_type]
+                );
+                console.log(`✅ Created daily habit "${habit.title}" for ${targetDate}`);
+            }
+        }
+    } catch (error) {
+        console.error('Error ensuring daily habits:', error);
+        // Don't throw - this is a best-effort operation
+    }
+}
+
 // Health check
 app.get('/', (req, res) => {
     res.send('Achiever API Running! 🚀');
@@ -263,12 +327,16 @@ async function getCurrentRatingFromDB() {
 app.get('/tasks', async (req, res) => {
     try {
         const { date, userId } = req.query; // Format: YYYY-MM-DD
-        const targetDate = date || new Date().toISOString().split('T')[0];
+        // Use getLocalDate() for 5am day boundary if no date provided
+        const targetDate = date || getLocalDate();
 
         // If userId provided, filter by user. Otherwise return empty for safety
         if (!userId) {
             return res.json([]); // No userId = no tasks (data isolation)
         }
+
+        // Auto-create daily habits for today if they don't exist
+        await ensureDailyHabitsExist(userId, targetDate);
 
         const result = await pool.query(
             'SELECT * FROM tasks WHERE assigned_date = $1 AND user_id = $2 ORDER BY importance ASC, created_at ASC',
@@ -286,7 +354,8 @@ app.get('/tasks', async (req, res) => {
 app.post('/tasks', async (req, res) => {
     try {
         const { title, importance, assigned_date, user_id, is_daily = false, is_cookie_jar = false, task_type = 'standard' } = req.body;
-        const date = assigned_date || new Date().toISOString().split('T')[0];
+        // Use getLocalDate() for 5am day boundary if no date provided
+        const date = assigned_date || getLocalDate();
 
         if (!user_id) {
             return res.status(400).json({ error: 'user_id is required' });
@@ -596,7 +665,7 @@ app.get('/streaks', async (req, res) => {
 app.post('/streaks/check-in', async (req, res) => {
     try {
         const { task_title, streak_type = 'avoidance' } = req.body;
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDate();
 
         // Check if streak exists
         const existing = await pool.query(
@@ -713,7 +782,7 @@ app.post('/streaks/:id/break', async (req, res) => {
 app.post('/cookie-jar', async (req, res) => {
     try {
         const { title, description, icon = '🍪' } = req.body;
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDate();
 
         const result = await pool.query(
             'INSERT INTO cookie_jar (title, description, icon, earned_date) VALUES ($1, $2, $3, $4) RETURNING *',

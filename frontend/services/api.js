@@ -2,8 +2,18 @@ const API_URL = 'https://achiever-production-e895.up.railway.app';
 
 // Helper to get local date string YYYY-MM-DD
 // format: 2026-01-04
+// Day starts at 5am - if before 5am, treat as previous day
 export const getLocalDateString = () => {
     const now = new Date();
+
+    // Day boundary: 5am local time
+    const DAY_START_HOUR = 5;
+
+    // If before 5am, subtract a day
+    if (now.getHours() < DAY_START_HOUR) {
+        now.setDate(now.getDate() - 1);
+    }
+
     const offset = now.getTimezoneOffset() * 60000;
     const localDate = new Date(now.getTime() - offset);
     return localDate.toISOString().split('T')[0];
@@ -48,7 +58,7 @@ export const toggleTaskCompletion = async (taskId) => {
     const response = await fetch(`${API_URL}/tasks/${taskId}/toggle`, {
         method: 'PATCH',
     });
-    const updatedTask = await response.json();
+const updatedTask = await response.json();
     return updatedTask;
 };
 
