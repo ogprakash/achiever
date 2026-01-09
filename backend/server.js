@@ -84,6 +84,33 @@ app.get('/', (req, res) => {
     res.send('Achiever API Running! 🚀');
 });
 
+// Admin endpoint to clean up duplicate tasks
+// Keeps the FIRST task (lowest ID) for each title+date combo
+app.post('/admin/cleanup-duplicates', async (req, res) => {
+    try {
+        // Find and delete duplicates, keeping the one with lowest ID
+        const result = await pool.query(`
+            DELETE FROM tasks 
+            WHERE id NOT IN (
+                SELECT MIN(id) 
+                FROM tasks 
+                GROUP BY LOWER(title), assigned_date, user_id
+            )
+            AND is_daily = true
+            RETURNING id, title, assigned_date
+        `);
+
+        console.log(`🧹 Cleaned up ${result.rowCount} duplicate tasks`);
+        res.json({
+            message: `Removed ${result.rowCount} duplicate tasks`,
+            removed: result.rows
+        });
+    } catch (error) {
+        console.error('Error cleaning duplicates:', error);
+        res.status(500).json({ error: 'Failed to clean duplicates' });
+    }
+});
+
 // ========== AUTHENTICATION ENDPOINTS ==========
 
 // Sign Up (create new user with password)
