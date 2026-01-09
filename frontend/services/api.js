@@ -29,6 +29,7 @@ export const fetchTasks = async (date, userId) => {
         : `${API_URL}/tasks?date=${targetDate}`;
     const response = await fetch(url);
     const data = await response.json();
+    console.log("final data on fetch tasks is:", data);
     return data;
 };
 
@@ -58,7 +59,7 @@ export const toggleTaskCompletion = async (taskId) => {
     const response = await fetch(`${API_URL}/tasks/${taskId}/toggle`, {
         method: 'PATCH',
     });
-const updatedTask = await response.json();
+    const updatedTask = await response.json();
     return updatedTask;
 };
 

@@ -58,6 +58,7 @@ async function ensureDailyHabitsExist(userId, targetDate) {
                 'SELECT id FROM tasks WHERE user_id = $1 AND title = $2 AND assigned_date = $3',
                 [userId, habit.title, targetDate]
             );
+            console.log(existingTask);
 
             if (existingTask.rows.length === 0) {
                 // Create the daily habit for today (uncompleted)
@@ -68,6 +69,7 @@ async function ensureDailyHabitsExist(userId, targetDate) {
                 );
                 console.log(`✅ Created daily habit "${habit.title}" for ${targetDate}`);
             }
+            console.log("after adding daily habit from db:", existingTask);
         }
     } catch (error) {
         console.error('Error ensuring daily habits:', error);
@@ -344,6 +346,7 @@ app.get('/tasks', async (req, res) => {
         );
 
         res.json(result.rows);
+        console.log("final data for tasks is:", result.rows);
     } catch (error) {
         console.error('Error fetching tasks:', error);
         res.status(500).json({ error: 'Failed to fetch tasks' });

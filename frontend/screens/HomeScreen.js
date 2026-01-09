@@ -21,6 +21,7 @@ export default function HomeScreen({ navigation }) {
                 fetchTasks(today, user?.id),
                 getDailyScore(today, user?.id)
             ]);
+            console.log("final data on load data in ui component is:", tasksData);
 
             setTasks(tasksData || []);
             setDailyScore(scoreData);
