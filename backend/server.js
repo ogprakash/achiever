@@ -42,23 +42,24 @@ async function ensureDailyHabitsExist(userId, targetDate) {
         // If the most recent instance has is_daily=true, we continue it.
         // If the most recent instance has is_daily=false, we assume the user stopped it.
         const dailyHabitsResult = await pool.query(`
-            SELECT DISTINCT ON (title) title, importance, is_daily, is_cookie_jar, task_type, user_id
+            SELECT DISTINCT ON (LOWER(title)) title, importance, is_daily, is_cookie_jar, task_type, user_id
             FROM tasks
             WHERE user_id = $1
-            ORDER BY title, assigned_date DESC, created_at DESC
+            ORDER BY LOWER(title), assigned_date DESC, created_at DESC
         `, [userId]);
 
         // Filter in JS to only keep the active ones
-        // (Doing it in SQL with DISTINCT ON + WHERE is tricky because WHERE runs before DISTINCT)
         const dailyHabits = dailyHabitsResult.rows.filter(t => t.is_daily);
+        console.log(`📋 Found ${dailyHabits.length} active daily habits for user ${userId}:`, dailyHabits.map(h => h.title));
 
         for (const habit of dailyHabits) {
-            // Check if this habit already exists for target date
+            // Check if this habit already exists for target date (case-insensitive)
             const existingTask = await pool.query(
-                'SELECT id FROM tasks WHERE user_id = $1 AND title = $2 AND assigned_date = $3',
+                'SELECT id FROM tasks WHERE user_id = $1 AND LOWER(title) = LOWER($2) AND assigned_date = $3',
                 [userId, habit.title, targetDate]
             );
-            console.log(existingTask);
+
+            console.log(`  🔍 Checking "${habit.title}" for ${targetDate}: found ${existingTask.rows.length} existing`);
 
             if (existingTask.rows.length === 0) {
                 // Create the daily habit for today (uncompleted)
@@ -67,9 +68,10 @@ async function ensureDailyHabitsExist(userId, targetDate) {
                      VALUES ($1, $2, $3, $4, $5, $6, $7, false)`,
                     [habit.title, habit.importance, targetDate, userId, true, habit.is_cookie_jar, habit.task_type]
                 );
-                console.log(`✅ Created daily habit "${habit.title}" for ${targetDate}`);
+                console.log(`  ✅ Created daily habit "${habit.title}" for ${targetDate}`);
+            } else {
+                console.log(`  ⏭️ Skipped "${habit.title}" - already exists`);
             }
-            console.log("after adding daily habit from db:", existingTask);
         }
     } catch (error) {
         console.error('Error ensuring daily habits:', error);
